@@ -19,8 +19,24 @@ const register = async (req, res) => {
     const hashedPassword = bcrypt.hashSync(password, 10);
     const user = await User.create({ email, password: hashedPassword, full_name });
 
-    res.status(201).json({ id: user._id, email: user.email, full_name: user.full_name });
+    // Auto-login after registration
+    const token = jwt.sign({ id: user._id, email: user.email }, config.jwtSecret, {
+      expiresIn: config.jwtExpiresIn,
+    });
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: config.isProduction,
+      sameSite: 'lax',
+      maxAge: config.cookieMaxAge,
+    });
+
+    res.status(201).json({ 
+      message: 'Registration and login successful',
+      user: { id: user._id, email: user.email, full_name: user.full_name } 
+    });
   } catch (error) {
+    console.error('Registration error:', error);
     res.status(500).json({ detail: 'Server error' });
   }
 };
@@ -48,9 +64,9 @@ const login = async (req, res) => {
 
     res.cookie('token', token, {
       httpOnly: true,
-      secure: false,
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      secure: config.isProduction,
+      sameSite: 'lax',
+      maxAge: config.cookieMaxAge,
     });
 
     res.json({ message: 'Login successful', user: { id: user._id, email: user.email, full_name: user.full_name } });
@@ -62,8 +78,8 @@ const login = async (req, res) => {
 const logout = (req, res) => {
   res.clearCookie('token', {
     httpOnly: true,
-    secure: false,
-    sameSite: 'strict',
+    secure: config.isProduction,
+    sameSite: 'lax',
   });
   res.json({ message: 'Logged out' });
 };

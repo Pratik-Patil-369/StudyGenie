@@ -1,8 +1,11 @@
-import { useState, useRef, type FormEvent, type DragEvent } from 'react';
+import { useState, useRef, useEffect, type FormEvent, type DragEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiUpload } from '../utils/api';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 const GRADES = ['A', 'B', 'C', 'D', 'F'];
+
+const STORAGE_KEY = 'studygenie_new_plan_form';
 
 export default function StudyDetailsPage() {
     const navigate = useNavigate();
@@ -12,8 +15,11 @@ export default function StudyDetailsPage() {
     const [dragActive, setDragActive] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [statusMsg, setStatusMsg] = useState('');
+    usePageTitle('Create Study Plan');
 
-    const [form, setForm] = useState({
+    // Rehydrate form from sessionStorage if user navigated away
+    const saved = sessionStorage.getItem(STORAGE_KEY);
+    const [form, setForm] = useState(saved ? JSON.parse(saved) : {
         title: '',
         syllabus: '',
         start_date: '',
@@ -21,6 +27,11 @@ export default function StudyDetailsPage() {
         subject: '',
         current_grade: '',
     });
+
+    // Persist form to sessionStorage on every change
+    useEffect(() => {
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(form));
+    }, [form]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         setForm({ ...form, [e.target.name]: e.target.value });
@@ -83,11 +94,12 @@ export default function StudyDetailsPage() {
 
             if (plan.warning) {
                 setStatusMsg(plan.warning);
-                setTimeout(() => navigate(`/plans/${plan._id}/topics`), 3000);
+                setTimeout(() => { sessionStorage.removeItem(STORAGE_KEY); navigate(`/plans/${plan._id}/topics`); }, 3000);
             } else if (plan.topics && plan.topics.length > 0) {
                 setStatusMsg(`Extracted ${plan.topics.length} topics! Redirecting...`);
-                setTimeout(() => navigate(`/plans/${plan._id}/topics`), 1000);
+                setTimeout(() => { sessionStorage.removeItem(STORAGE_KEY); navigate(`/plans/${plan._id}/topics`); }, 1000);
             } else {
+                sessionStorage.removeItem(STORAGE_KEY);
                 navigate('/');
             }
         } catch (err) {
@@ -195,6 +207,7 @@ export default function StudyDetailsPage() {
                             value={form.syllabus}
                             onChange={handleChange}
                             rows={5}
+                            maxLength={5000}
                         />
                     </div>
                 )}

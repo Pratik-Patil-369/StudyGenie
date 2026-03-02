@@ -7,6 +7,15 @@ const topicSchema = new mongoose.Schema({
   completed: { type: Boolean, default: false }
 }, { _id: true });
 
+const dailyTaskSchema = new mongoose.Schema({
+  day: { type: Number, required: true },
+  date: { type: Date, required: true },
+  topics: [String],
+  duration_hours: { type: Number, default: 2 },
+  difficulty: { type: String, enum: ['easy', 'medium', 'hard'], default: 'medium' },
+  notes: { type: String, default: '' }
+}, { _id: false });
+
 const studyPlanSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
@@ -41,6 +50,7 @@ const studyPlanSchema = new mongoose.Schema({
     trim: true
   },
   topics: [topicSchema],
+  daily_plan: [dailyTaskSchema],
   syllabus_file_name: {
     type: String,
     default: null

@@ -53,7 +53,6 @@ const createPlanWithFile = (req, res) => {
       let warning = null;
 
       if (req.file) {
-        console.log('File saved:', req.file.path);
         syllabusFileName = req.file.originalname;
         syllabusFilePath = req.file.filename;
 
@@ -78,6 +77,10 @@ const createPlanWithFile = (req, res) => {
         } else {
           warning = 'This PDF appears to be scanned/image-based. Text could not be extracted automatically. Please add topics manually on the topics page.';
         }
+      } else if (syllabus) {
+        // Handle manual copy-paste text
+        topics = extractTopics(syllabus);
+        syllabusText = syllabus;
       }
 
       if (!syllabusText) {
@@ -134,7 +137,7 @@ const getTopics = async (req, res) => {
     if (!plan) {
       return res.status(404).json({ detail: 'Study plan not found' });
     }
-    res.json({ topics: plan.topics, file_name: plan.syllabus_file_name });
+    res.json({ topics: plan.topics, file_name: plan.syllabus_file_name, plan_title: plan.title });
   } catch (error) {
     res.status(500).json({ detail: 'Server error' });
   }

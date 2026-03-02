@@ -1,47 +1,42 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 :root {
-    /* Study-friendly color palette */
-    --bg-primary: #0F172A;
-    --bg-secondary: #1E293B;
-    --bg-card: #1E293B;
-    --bg-elevated: #334155;
-    --bg-glass: rgba(30, 41, 59, 0.8);
+    /* Base Colors - Deep Slate & Navy */
+    --bg-primary: #020617;
+    --bg-secondary: #0f172a;
+    --bg-card: rgba(30, 41, 59, 0.7);
+    --bg-elevated: rgba(51, 65, 85, 0.8);
+    --bg-glass: rgba(15, 23, 42, 0.7);
 
-    /* Teal — focus & calm concentration */
-    --accent: #14B8A6;
-    --accent-hover: #0D9488;
-    --accent-glow: rgba(20, 184, 166, 0.15);
+    /* Neon Accents */
+    --accent: #2dd4bf;
+    /* Bright Teal */
+    --accent-hover: #14b8a6;
+    --accent-glow: rgba(45, 212, 191, 0.2);
+    --blue-neon: #38bdf8;
+    --purple-neon: #a855f7;
 
-    /* Soft blue — cognitive function */
-    --blue: #38BDF8;
+    /* Text - High Contrast for Dark Mode */
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
 
-    /* Green — easiest on eyes */
-    --green: #34D399;
+    /* Borders & Interaction */
+    --border: rgba(255, 255, 255, 0.08);
+    --border-glow: rgba(45, 212, 191, 0.3);
 
-    /* Warm amber — attention, no anxiety */
-    --amber: #FBBF24;
-
-    /* Text */
-    --text-primary: #E2E8F0;
-    --text-secondary: #94A3B8;
-    --text-muted: #64748B;
-
-    /* Borders */
-    --border: rgba(148, 163, 184, 0.15);
-    --border-hover: rgba(20, 184, 166, 0.4);
-
-    /* Error */
-    --error: #F87171;
-    --error-bg: rgba(248, 113, 113, 0.1);
+    /* Utilities */
+    --glass-blur: blur(12px);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+    --inner-glow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
 
     /* Radius */
     --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 16px;
+    --radius-md: 16px;
+    --radius-lg: 24px;
 
     /* Transition */
-    --transition: 0.2s ease;
+    --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 * {
@@ -79,11 +74,11 @@ textarea {
 
 ::selection {
     background: var(--accent);
-    color: var(--bg-primary);
+    color: #000;
 }
 
 ::-webkit-scrollbar {
-    width: 6px;
+    width: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -92,5 +87,11 @@ textarea {
 
 ::-webkit-scrollbar-thumb {
     background: var(--bg-elevated);
-    border-radius: 3px;
+    border-radius: 10px;
+    border: 2px solid var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent-glow);
 }

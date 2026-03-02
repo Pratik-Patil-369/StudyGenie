@@ -16,7 +16,7 @@ export default function LoginPage() {
     return (
         <div className="auth-page">
             <div className="auth-brand">
-                <div className="logo-large"> StudyGenie</div>
+                <div className="logo-text">StudyGenie</div>
                 <p>Your AI-powered smart study companion</p>
             </div>
             {isLogin ? (

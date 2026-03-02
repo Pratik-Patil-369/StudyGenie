@@ -17,11 +17,16 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+// Module-level cache — survives re-renders, reset on logout
+let cachedUser: { id: string; email: string; full_name: string | null } | null = null;
+let hasFetched = false;
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const [user, setUser] = useState<User | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const [user, setUser] = useState<User | null>(cachedUser);
+    const [isLoading, setIsLoading] = useState(!hasFetched);
 
     useEffect(() => {
+        if (hasFetched) return; // Skip network call if already fetched this session
         fetchUser();
     }, []);
 
@@ -31,11 +36,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 credentials: 'include',
             });
             if (res.ok) {
-                setUser(await res.json());
+                const u = await res.json();
+                cachedUser = u;
+                hasFetched = true;
+                setUser(u);
             } else {
+                cachedUser = null;
+                hasFetched = true;
                 setUser(null);
             }
         } catch {
+            cachedUser = null;
+            hasFetched = true;
             setUser(null);
         } finally {
             setIsLoading(false);
@@ -76,6 +88,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             method: 'POST',
             credentials: 'include',
         });
+        cachedUser = null;
+        hasFetched = false;
         setUser(null);
     };
 

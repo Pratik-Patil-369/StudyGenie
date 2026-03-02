@@ -55,27 +55,18 @@ export function RegisterForm({ onToggle }: AuthFormProps) {
     const [password, setPassword] = useState('');
     const [fullName, setFullName] = useState('');
     const [error, setError] = useState('');
-    const [success, setSuccess] = useState(false);
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         setError('');
         try {
             await register(email, password, fullName);
-            setSuccess(true);
+            // On success, AuthContext will update 'user' state, 
+            // and LoginPage will automatically redirect to '/'
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Registration failed');
         }
     };
-
-    if (success) {
-        return (
-            <div className="auth-form">
-                <h2>Success!</h2>
-                <p>Account created. <span onClick={onToggle} className="link">Login now</span></p>
-            </div>
-        );
-    }
 
     return (
         <form onSubmit={handleSubmit} className="auth-form">

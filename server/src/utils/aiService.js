@@ -1,5 +1,6 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const config = require('../config');
+const { extractJSON } = require('./extractJSON');
 
 /**
  * Generic helper for OpenAI-compatible Chat Completion APIs (Ollama, Groq)
@@ -99,4 +100,28 @@ const generateWithAI = async (prompt) => {
     throw new Error('No valid AI provider succeeded.');
 };
 
-module.exports = { generateWithAI };
+const explainQuestion = async (topic, question, options, correctAnswer, userAnswer) => {
+    const prompt = `
+You are an expert tutor. Please explain the following multiple-choice question clearly and concisely.
+Topic: ${topic}
+Question: ${question}
+Options: ${options.join(', ')}
+Correct Answer: ${correctAnswer}
+${userAnswer ? `User Answer (Incorrect): ${userAnswer}` : ''}
+
+Provide a short, 2-3 paragraph explanation of WHY the correct answer is right ${userAnswer ? 'and WHY the user answer is wrong' : ''}. Use a friendly, encouraging tone. 
+Return your response STRICTLY as a JSON object with a single key "explanation" containing the text.
+Example: {"explanation": "Your text here..."}
+`;
+
+    try {
+        const result = await generateWithAI(prompt);
+        const parsed = extractJSON(result.text);
+        return parsed.explanation || "Explanation not found in response.";
+    } catch (error) {
+        console.error('AI Explain Error:', error);
+        throw new Error('Failed to generate explanation from AI');
+    }
+}
+
+module.exports = { generateWithAI, explainQuestion };

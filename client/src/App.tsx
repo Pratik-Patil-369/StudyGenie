@@ -14,6 +14,8 @@ const StudyDetailsPage = lazy(() => import('./pages/StudyDetailsPage'));
 const TopicsPage = lazy(() => import('./pages/TopicsPage'));
 const DailyPlanPage = lazy(() => import('./pages/DailyPlanPage'));
 const QuizPage = lazy(() => import('./pages/QuizPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const QuizReviewPage = lazy(() => import('./pages/QuizReviewPage'));
 
 function PageLoader() {
     return (
@@ -40,6 +42,8 @@ function App() {
                                 <Route path="/plans/:id/topics" element={<ProtectedRoute><TopicsPage /></ProtectedRoute>} />
                                 <Route path="/plans/:id/daily-plan" element={<ProtectedRoute><DailyPlanPage /></ProtectedRoute>} />
                                 <Route path="/plans/:id/quiz" element={<ProtectedRoute><QuizPage /></ProtectedRoute>} />
+                                <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+                                <Route path="/review/:id" element={<ProtectedRoute><QuizReviewPage /></ProtectedRoute>} />
                             </Routes>
                         </Suspense>
                     </main>

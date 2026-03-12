@@ -12,4 +12,8 @@ module.exports = {
   groqModel: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
   isProduction: process.env.NODE_ENV === 'production',
   cookieMaxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
+  // Email config
+  emailUser: process.env.EMAIL_USER || '',
+  emailPass: process.env.EMAIL_PASS || '',
+  emailFrom: process.env.EMAIL_FROM || '',
 };

@@ -283,13 +283,29 @@ main {
     background: var(--accent);
 }
 
-.nav-user {
+/* User Menu */
+.user-menu {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    margin-left: 1.5rem;
+    gap: 1.5rem;
+    margin-left: 1rem;
     padding-left: 1.5rem;
     border-left: 1px solid var(--border);
+}
+
+.streak-badge {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #f97316;
+    /* Orange flame color */
+    background: rgba(249, 115, 22, 0.1);
+    padding: 0.25rem 0.6rem;
+    border-radius: 50px;
+    border: 1px solid rgba(249, 115, 22, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    cursor: default;
 }
 
 .nav-user span {
@@ -841,6 +857,38 @@ main {
 }
 
 /* Plan Cards */
+/* Dashboard Grid Layout */
+.main-dashboard-grid {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+}
+
+.plans-section {
+    flex: 1;
+}
+
+.dashboard-sidebar {
+    width: 320px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    position: sticky;
+    top: 5rem;
+}
+
+@media (max-width: 900px) {
+    .main-dashboard-grid {
+        flex-direction: column;
+    }
+
+    .dashboard-sidebar {
+        width: 100%;
+        position: static;
+    }
+}
+
 .plans-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
@@ -1353,14 +1401,43 @@ main {
 
 /* ===== DAILY PLAN PAGE ===== */
 .daily-plan-page {
-    max-width: 1000px;
+    position: relative;
+    max-width: 1200px;
     margin: 0 auto;
 }
 
+.daily-plan-layout {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+}
+
 .schedule-container {
+    flex: 1;
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
+}
+
+.pomodoro-sidebar {
+    position: sticky;
+    top: 5rem;
+    width: 280px;
+    flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
+    .daily-plan-layout {
+        flex-direction: column-reverse;
+    }
+
+    .pomodoro-sidebar {
+        position: static;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        margin-bottom: 2rem;
+    }
 }
 
 .day-card {
@@ -1380,35 +1457,36 @@ main {
 
 .day-card-header {
     background: rgba(45, 212, 191, 0.04);
-    padding: 2rem;
-    width: 180px;
-    min-width: 180px;
+    padding: 1.5rem 1.25rem;
+    width: 160px;
+    min-width: 160px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     border-right: 1px solid var(--border);
     text-align: center;
+    gap: 0.5rem;
 }
 
 .day-number {
-    font-size: 2.5rem;
+    font-size: 2.2rem;
     font-weight: 900;
     color: var(--accent);
     line-height: 1;
+    margin-top: 0.25rem;
 }
 
 .day-date {
     color: var(--text-muted);
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     font-weight: 600;
-    margin-top: 0.4rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
 .day-card-body {
-    padding: 2rem;
+    padding: 1.5rem 2rem;
     flex-grow: 1;
 }
 
@@ -1737,4 +1815,339 @@ main {
     font-style: italic;
     padding-left: 0.5rem;
     border-left: 2px solid var(--border);
+}
+
+/* =============================================
+   UI LAYOUT FIXES — NO UNNECESSARY SCROLL
+   ============================================= */
+
+/* ── LOGIN / REGISTER PAGE ──────────────────── */
+/* Hides navbar on auth page so login card is truly centered */
+.auth-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 64px);
+    /* subtract navbar height */
+    padding: 2rem 1rem;
+    gap: 1.5rem;
+}
+
+.auth-brand {
+    text-align: center;
+}
+
+.logo-text {
+    font-size: 2.5rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--accent), var(--blue-neon));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -1px;
+}
+
+.auth-brand p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    margin-top: 0.25rem;
+}
+
+.auth-form {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 2.5rem 2rem;
+    width: 100%;
+    max-width: 460px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    backdrop-filter: var(--glass-blur);
+}
+
+.auth-form h2 {
+    font-size: 1.75rem;
+    font-weight: 800;
+    text-align: center;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.auth-form input {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.875rem 1rem;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    transition: border-color var(--transition);
+    width: 100%;
+}
+
+.auth-form input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.auth-form button[type="submit"] {
+    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+    color: #000;
+    font-weight: 800;
+    font-size: 1rem;
+    padding: 0.875rem 1rem;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition);
+    width: 100%;
+}
+
+.auth-form button[type="submit"]:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px var(--accent-glow);
+}
+
+.auth-form button[type="submit"]:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.toggle-text {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.toggle-text span {
+    color: var(--accent);
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.toggle-text span:hover {
+    text-decoration: underline;
+}
+
+.auth-form .error {
+    background: rgba(248, 113, 113, 0.1);
+    border: 1px solid rgba(248, 113, 113, 0.3);
+    color: #f87171;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    text-align: center;
+}
+
+/* ── HOME PAGE — RECENT PERFORMANCE LIST ────── */
+/* Cap height so it doesn't push page scroll */
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-height: 420px;
+    overflow-y: auto;
+    padding-right: 4px;
+    /* space for scrollbar */
+}
+
+/* ── HOME PAGE — DASHBOARD GRID ─────────────── */
+/* Make sure dashboard fills viewport properly */
+.home-page {
+    min-height: calc(100vh - 64px);
+    display: flex;
+    flex-direction: column;
+}
+
+/* ── HOME CONTENT AREA SIDE BY SIDE ─────────── */
+.home-content {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 2rem;
+    align-items: start;
+}
+
+/* stack to single column on smaller screens */
+@media (max-width: 1024px) {
+    .home-content {
+        grid-template-columns: 1fr;
+    }
+
+    .history-list {
+        max-height: 280px;
+    }
+}
+
+/* =============================================
+   WEEK 5-6 FEATURE CSS
+   ============================================= */
+
+/* ── PROGRESS ANALYTICS CHARTS ───────────────── */
+/* Responsive adjustments for overall page max-width */
+.home-page {
+    position: relative;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.progress-charts-section {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+}
+
+.section-title {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 1.5rem;
+}
+
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+}
+
+@media (max-width: 1100px) {
+    .charts-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 700px) {
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.chart-card {
+    padding: 1.5rem;
+    border-radius: var(--radius-md);
+}
+
+.chart-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.2rem;
+}
+
+.chart-subtitle {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+}
+
+/* ── DAY CARD IMPROVEMENTS ───────────────────── */
+.day-card-today {
+    border: 1px solid var(--accent) !important;
+    box-shadow: 0 0 16px var(--accent-glow);
+}
+
+.day-card-past {
+    opacity: 0.65;
+}
+
+.today-badge {
+    display: inline-block;
+    background: var(--accent);
+    color: #000;
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 0.15rem 0.5rem;
+    border-radius: 50px;
+    letter-spacing: 0.5px;
+    margin-left: 0.6rem;
+    vertical-align: middle;
+}
+
+/* ── DAY QUIZ ACTION BUTTON ──────────────────── */
+.day-quiz-action {
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* ── DAY COMPLETION INDICATORS ───────────────── */
+.day-card-done {
+    border: 1px solid rgba(45, 212, 191, 0.5) !important;
+    background: rgba(45, 212, 191, 0.04);
+}
+
+.done-badge {
+    display: inline-block;
+    background: rgba(45, 212, 191, 0.15);
+    color: var(--accent);
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 0.15rem 0.6rem;
+    border-radius: 50px;
+    letter-spacing: 0.5px;
+    margin-left: 0.6rem;
+    border: 1px solid var(--border-glow);
+    vertical-align: middle;
+}
+
+/* Day progress bar */
+.day-progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid var(--border);
+}
+
+.day-progress-bar {
+    flex: 1;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.07);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.day-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--blue-neon));
+    border-radius: 10px;
+    transition: width 0.4s ease;
+}
+
+.day-progress-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+/* Completed topic in list */
+.task-topics ul li.topic-done {
+    color: var(--accent);
+    border-left-color: #2dd4bf;
+    background: rgba(45, 212, 191, 0.08);
+    opacity: 0.85;
+}
+
+/* Compact progress bar inside day-card-header (left panel) */
+.day-header-progress {
+    width: 100%;
+    margin-top: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.day-header-progress-bar {
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    overflow: hidden;
 }

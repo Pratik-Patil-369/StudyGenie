@@ -9,6 +9,9 @@ const studyPlanRoutes = require('./routes/studyPlanRoutes');
 const syllabusRoutes = require('./routes/syllabusRoutes');
 const dailyPlanRoutes = require('./routes/dailyPlanRoutes');
 const quizRoutes = require('./routes/quizRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
+const userRoutes = require('./routes/userRoutes');
+const { startEmailScheduler } = require('./utils/emailScheduler');
 const config = require('./config');
 
 connectDB();
@@ -25,10 +28,14 @@ app.use('/api/study-plans', syllabusRoutes);
 app.use('/api/study-plans', studyPlanRoutes);
 app.use('/api/study-plans', dailyPlanRoutes);
 app.use('/api/quizzes', quizRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/users', userRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'StudyGenie API is running' });
 });
+
+startEmailScheduler();
 
 app.listen(config.port, () => {
   console.log(`Server running on http://localhost:${config.port}`);

@@ -12,10 +12,28 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  lastLogin: {
+    type: Date,
+    default: Date.now,
+  },
+  currentStreak: {
+    type: Number,
+    default: 0
+  },
+  xp: {
+    type: Number,
+    default: 0
+  },
+  lastActivityDate: {
+    type: Date,
+    default: null
+  },
   full_name: {
     type: String,
     trim: true
   }
-}, { timestamps: true });
+}, {
+  timestamps: true,
+});
 
 module.exports = mongoose.model('User', userSchema);

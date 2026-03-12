@@ -2,26 +2,29 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiDelete } from '../utils/api';
+import ProgressCharts from '../components/ProgressCharts';
+import { Leaderboard } from '../components/Leaderboard';
 
 interface StudyPlan {
     _id: string;
     title: string;
-    syllabus: string;
+    subject: string;
     start_date: string;
     end_date: string;
-    subject: string;
     current_grade: string;
-    topics: { name: string; subtopics: string[]; completed: boolean }[];
-    createdAt: string;
+    topics: { name: string; completed: boolean }[];
 }
 
 interface QuizResult {
     _id: string;
-    percentage: number;
     score: number;
-    total_questions: number;
-    quiz: { difficulty: string; topics: string[] };
+    percentage: number;
     completed_at: string;
+    quiz: {
+        title: string;
+        difficulty: string;
+        topics: string[];
+    };
 }
 
 export default function HomePage() {
@@ -37,12 +40,13 @@ export default function HomePage() {
 
     const fetchDashboardData = async () => {
         try {
-            const [plansData, historyData] = await Promise.all([
+            setLoading(true);
+            const [plansRes, historyRes] = await Promise.all([
                 apiGet('/study-plans'),
                 apiGet('/quizzes/quiz-history')
             ]);
-            setPlans(plansData);
-            setQuizHistory(historyData);
+            setPlans(plansRes);
+            setQuizHistory(historyRes);
         } catch (err) {
             console.error('Failed to fetch dashboard data');
         } finally {
@@ -85,7 +89,7 @@ export default function HomePage() {
         <div className="home-page">
             <div className="home-header">
                 <div>
-                    <h1>Welcome back, <span>{user?.full_name || user?.email}</span>!</h1>
+                    <h1>Welcome back, <span>{user?.full_name || user?.email.split('@')[0]}</span>!</h1>
                     <p className="subtitle">Track your progress and test your knowledge</p>
                 </div>
                 <Link to="/new-plan" className="btn-primary">+ New Study Plan</Link>
@@ -175,26 +179,40 @@ export default function HomePage() {
                     )}
                 </div>
 
-                {!loading && quizHistory.length > 0 && (
-                    <div className="history-section">
-                        <h2>Recent Performance</h2>
-                        <div className="history-list">
-                            {quizHistory.map((res) => (
-                                <div className="history-item glass-card" key={res._id}>
-                                    <div className="hist-header">
-                                        <span className="hist-score">{res.percentage}%</span>
-                                        <div className={`difficulty-badge difficulty-${res.quiz?.difficulty || 'medium'}`}>
-                                            {res.quiz?.difficulty || 'med'}
+                {/* Right Column Layout Container */}
+                <div className="dashboard-sidebar">
+                    {!loading && quizHistory.length > 0 && (
+                        <div className="history-section">
+                            <h2>Recent Performance</h2>
+                            <div className="history-list">
+                                {quizHistory.map((res) => (
+                                    <div className="history-item glass-card" key={res._id}>
+                                        <div className="hist-header">
+                                            <span className="hist-score">{res.percentage}%</span>
+                                            <div className={`difficulty-badge difficulty-${res.quiz?.difficulty || 'medium'}`}>
+                                                {res.quiz?.difficulty || 'med'}
+                                            </div>
                                         </div>
+                                        <p className="hist-topics">{res.quiz?.topics?.slice(0, 2).join(', ')}...</p>
+                                        <span className="hist-date">{new Date(res.completed_at).toLocaleDateString()}</span>
                                     </div>
-                                    <p className="hist-topics">{res.quiz?.topics?.slice(0, 2).join(', ')}...</p>
-                                    <span className="hist-date">{new Date(res.completed_at).toLocaleDateString()}</span>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </div>
-                    </div>
-                )}
+                    )}
+
+                    {!loading && (
+                        <div className="leaderboard-section">
+                            <Leaderboard />
+                        </div>
+                    )}
+                </div>
             </div>
+
+            {/* Progress Analytics Charts */}
+            {!loading && (quizHistory.length > 0 || plans.some(p => p.topics?.length > 0)) && (
+                <ProgressCharts quizHistory={quizHistory} plans={plans} />
+            )}
         </div>
     );
 }

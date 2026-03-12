@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { apiPost } from '../utils/api';
 import { toast } from '../components/Toast';
 import { usePageTitle } from '../hooks/usePageTitle';
@@ -15,11 +15,16 @@ interface QuizData {
     quizId: string;
     questions: Question[];
     difficulty: string;
+    topics?: string[];
+    dayLabel?: string;
 }
 
 export default function QuizPage() {
     const { id: planId } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const dayParam = searchParams.get('day'); // present when coming from DailyPlanPage
+
     const [loading, setLoading] = useState(true);
     const [quiz, setQuiz] = useState<QuizData | null>(null);
     const [currentStep, setCurrentStep] = useState(0);
@@ -27,9 +32,25 @@ export default function QuizPage() {
     const [answers, setAnswers] = useState<{ question_index: number; selected_option: string }[]>([]);
     const [results, setResults] = useState<any>(null);
     const [error, setError] = useState('');
-    usePageTitle(results ? 'Quiz Results' : 'Adaptive Quiz');
+    const [aiExplanations, setAiExplanations] = useState<{ [key: number]: string }>({});
+    const [explainingId, setExplainingId] = useState<number | null>(null);
+
+    const quizLabel = quiz?.dayLabel || (dayParam ? `Day ${dayParam} Quiz` : 'Adaptive Quiz');
+    usePageTitle(results ? 'Quiz Results' : quizLabel);
 
     useEffect(() => {
+        // If navigated from DailyPlanPage with day-wise data, use sessionStorage
+        const cachedKey = `quiz_${planId}`;
+        const cached = sessionStorage.getItem(cachedKey);
+        if (cached && dayParam) {
+            try {
+                const parsed = JSON.parse(cached);
+                setQuiz(parsed);
+                sessionStorage.removeItem(cachedKey); // use once
+                setLoading(false);
+                return;
+            } catch { /* fall through to generate */ }
+        }
         generateQuiz();
     }, [planId]);
 
@@ -65,11 +86,33 @@ export default function QuizPage() {
         try {
             const data = await apiPost(`/quizzes/submit-quiz/${quiz?.quizId}`, { answers: finalAnswers });
             setResults(data);
+            // Show toast if topics were auto-marked
+            if (data.autoMarkedTopics && data.autoMarkedTopics.length > 0) {
+                toast(`🎯 ${data.autoMarkedTopics.length} topic(s) auto-marked as done! (Score ≥ 80%)`, 'success');
+            }
         } catch (err) {
             toast('Failed to submit results. Please try again.', 'error');
             setError('Failed to submit results');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleExplain = async (q: Question, idx: number, userAnsOptions: string) => {
+        setExplainingId(idx);
+        try {
+            const data = await apiPost('/quizzes/explain', {
+                question: q.question,
+                options: q.options,
+                correctAnswer: q.answer,
+                userAnswer: userAnsOptions,
+                topic: quiz?.topics ? quiz.topics[0] : 'General'
+            });
+            setAiExplanations(prev => ({ ...prev, [idx]: data.explanation }));
+        } catch (err) {
+            toast('Failed to get AI explanation', 'error');
+        } finally {
+            setExplainingId(null);
         }
     };
 
@@ -108,7 +151,8 @@ export default function QuizPage() {
                         <span className="total-num">/ {results.total}</span>
                     </div>
                     <h2>{results.percentage >= 80 ? 'Excellent Work!' : results.percentage >= 50 ? 'Good Progress!' : 'Keep Studying!'}</h2>
-                    <p>You scored {results.percentage}% on this adaptive quiz.</p>
+                    <p>You scored {results.percentage}% on this {quizLabel.toLowerCase()}.</p>
+                    {dayParam && <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.25rem' }}>📧 A results summary has been sent to your email.</p>}
                 </div>
 
                 <div className="review-section">
@@ -123,6 +167,28 @@ export default function QuizPage() {
                                     {!userAns.is_correct && <p>Correct Answer: <span className="val">{q.answer}</span></p>}
                                 </div>
                                 {q.explanation && <p className="explanation"><strong>Tip:</strong> {q.explanation}</p>}
+
+                                {!userAns.is_correct && (
+                                    <div className="explain-action" style={{ marginTop: '0.75rem' }}>
+                                        {aiExplanations[idx] ? (
+                                            <div className="ai-explanation-box glass-card" style={{ padding: '1rem', background: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.3)' }}>
+                                                <strong>🤖 AI Tutor says:</strong>
+                                                <p style={{ marginTop: '0.5rem', fontSize: '0.9rem', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>
+                                                    {aiExplanations[idx]}
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            <button
+                                                className="btn-secondary"
+                                                style={{ fontSize: '0.8rem', padding: '0.3rem 0.8rem' }}
+                                                onClick={() => handleExplain(q, idx, userAns.selected_option)}
+                                                disabled={explainingId === idx}
+                                            >
+                                                {explainingId === idx ? '🤖 Thinking...' : '🤖 Explain This'}
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         );
                     })}
@@ -130,6 +196,7 @@ export default function QuizPage() {
 
                 <div className="header-actions" style={{ justifyContent: 'center', marginTop: '3rem' }}>
                     <button onClick={() => navigate(`/plans/${planId}/topics`)} className="btn-secondary">Back to Topics</button>
+                    <button onClick={() => navigate(`/plans/${planId}/daily-plan`)} className="btn-secondary">Daily Plan</button>
                     <button onClick={() => window.location.reload()} className="btn-primary">Try Another Quiz</button>
                 </div>
             </div>
@@ -142,7 +209,7 @@ export default function QuizPage() {
         <div className="daily-plan-page quiz-page">
             <div className="page-header">
                 <div>
-                    <h1>AI Adaptive Quiz</h1>
+                    <h1>{quizLabel}</h1>
                     <p className="subtitle">Step {currentStep + 1} of {quiz?.questions.length}</p>
                 </div>
                 <div className={`difficulty-badge difficulty-${quiz?.difficulty}`}>{quiz?.difficulty} Mode</div>

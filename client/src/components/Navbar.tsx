@@ -1,46 +1,35 @@
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function Navbar() {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
-    const location = useLocation();
 
     const handleLogout = async () => {
         await logout();
         navigate('/login');
     };
 
-    // Checks exact match for Home, prefix match for nested routes
-    const isActive = (path: string) => {
-        if (path === '/') return location.pathname === '/';
-        return location.pathname.startsWith(path);
-    };
 
     return (
         <header className="navbar">
             <Link to="/" className="logo">StudyGenie</Link>
             {user && (
-                <nav className="nav-links">
-                    <Link
-                        to="/"
-                        className={`nav-link ${isActive('/') ? 'nav-link-active' : ''}`}
-                    >
-                        Home
-                        {isActive('/') && <span className="nav-active-dot" />}
-                    </Link>
-                    <Link
-                        to="/new-plan"
-                        className={`nav-link ${isActive('/new-plan') ? 'nav-link-active' : ''}`}
-                    >
-                        New Plan
-                        {isActive('/new-plan') && <span className="nav-active-dot" />}
-                    </Link>
-                    <div className="nav-user">
-                        <span className="nav-username">{user.full_name || user.email}</span>
-                        <button className="btn-logout" onClick={handleLogout}>Logout</button>
+                <div className="nav-links">
+                    <NavLink to="/" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} end>Home</NavLink>
+                    <NavLink to="/new-plan" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>New Plan</NavLink>
+                    <div className="user-menu">
+                        {user.currentStreak !== undefined && user.currentStreak > 0 && (
+                            <span className="streak-badge" title={`${user.currentStreak} day study streak!`}>
+                                🔥 {user.currentStreak}
+                            </span>
+                        )}
+                        <Link to="/profile" className="user-name" style={{ textDecoration: 'none' }}>
+                            {user.full_name || user.email.split('@')[0]}
+                        </Link>
+                        <button onClick={handleLogout} className="btn-secondary logout-btn">Logout</button>
                     </div>
-                </nav>
+                </div>
             )}
         </header>
     );

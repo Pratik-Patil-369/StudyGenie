@@ -31,10 +31,7 @@ const register = async (req, res) => {
       maxAge: config.cookieMaxAge,
     });
 
-    res.status(201).json({ 
-      message: 'Registration and login successful',
-      user: { id: user._id, email: user.email, full_name: user.full_name } 
-    });
+    res.status(201).json({ message: 'User registered successfully', user: { id: user._id, email: user.email, full_name: user.full_name, currentStreak: user.currentStreak || 0 } });
   } catch (error) {
     console.error('Registration error:', error);
     res.status(500).json({ detail: 'Server error' });
@@ -69,7 +66,7 @@ const login = async (req, res) => {
       maxAge: config.cookieMaxAge,
     });
 
-    res.json({ message: 'Login successful', user: { id: user._id, email: user.email, full_name: user.full_name } });
+    res.json({ message: 'Login successful', user: { id: user._id, email: user.email, full_name: user.full_name, currentStreak: user.currentStreak || 0 } });
   } catch (error) {
     res.status(500).json({ detail: 'Server error' });
   }
@@ -89,7 +86,7 @@ const getMe = async (req, res) => {
   if (!user) {
     return res.status(404).json({ detail: 'User not found' });
   }
-  res.json({ id: user._id, email: user.email, full_name: user.full_name });
+  res.json({ id: user._id, email: user.email, full_name: user.full_name, currentStreak: user.currentStreak || 0 });
 };
 
 module.exports = { register, login, logout, getMe };

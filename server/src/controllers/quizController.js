@@ -1,8 +1,10 @@
 const Quiz = require('../models/Quiz');
 const QuizResult = require('../models/QuizResult');
 const StudyPlan = require('../models/StudyPlan');
-const { generateWithAI } = require('../utils/aiService');
+const User = require('../models/User');
+const { generateWithAI, explainQuestion } = require('../utils/aiService');
 const { extractJSON } = require('../utils/extractJSON');
+const { sendProgressEmail } = require('../utils/emailService');
 
 /**
  * Normalizes AI response for Quizzes
@@ -27,7 +29,7 @@ const normalizeQuizResponse = (rawData) => {
 /**
  * Calculates adaptive difficulty based on last result
  */
-const getAdaptiveDifficulty = async (userId, planId) => {
+const getAdaptiveDifficulty = async (userId) => {
     const lastResult = await QuizResult.findOne({ user: userId })
         .sort({ completed_at: -1 })
         .populate('quiz');
@@ -43,21 +45,30 @@ const getAdaptiveDifficulty = async (userId, planId) => {
 const generateQuiz = async (req, res) => {
     try {
         const { planId } = req.params;
+        // Optional: caller can pass specific topics (e.g. day-wise quiz from DailyPlanPage)
+        const requestedTopics = req.body?.topics;
+
         const plan = await StudyPlan.findOne({ _id: planId, user: req.user.id });
-        
         if (!plan) return res.status(404).json({ detail: 'Study plan not found' });
 
-        // Find completed topics to quiz on
-        const completedTopics = plan.topics.filter(t => t.completed).map(t => t.name);
-        
-        if (completedTopics.length === 0) {
-            return res.status(400).json({ detail: 'Complete at least one topic to generate a quiz!' });
+        let quizTopics;
+
+        if (requestedTopics && Array.isArray(requestedTopics) && requestedTopics.length > 0) {
+            // Day-wise quiz: use the specific topics passed by the caller
+            quizTopics = requestedTopics;
+        } else {
+            // Adaptive quiz: use all completed topics
+            const completedTopics = plan.topics.filter(t => t.completed).map(t => t.name);
+            if (completedTopics.length === 0) {
+                return res.status(400).json({ detail: 'Complete at least one topic to generate a quiz!' });
+            }
+            quizTopics = completedTopics;
         }
 
-        const difficulty = await getAdaptiveDifficulty(req.user.id, planId);
+        const difficulty = await getAdaptiveDifficulty(req.user.id);
 
         const prompt = `
-            Generate a multiple-choice quiz based on these study topics: ${completedTopics.join(', ')}.
+            Generate a multiple-choice quiz based on these study topics: ${quizTopics.join(', ')}.
             Difficulty Level: ${difficulty}
             Number of questions: 5
             
@@ -80,7 +91,7 @@ const generateQuiz = async (req, res) => {
         const newQuiz = new Quiz({
             study_plan: planId,
             user: req.user.id,
-            topics: completedTopics,
+            topics: quizTopics,
             difficulty,
             questions
         });
@@ -91,7 +102,8 @@ const generateQuiz = async (req, res) => {
             message: 'Quiz generated successfully',
             quizId: newQuiz._id,
             questions: newQuiz.questions,
-            difficulty: newQuiz.difficulty
+            difficulty: newQuiz.difficulty,
+            topics: quizTopics
         });
 
     } catch (error) {
@@ -99,6 +111,7 @@ const generateQuiz = async (req, res) => {
         res.status(500).json({ detail: 'Failed to generate quiz: ' + error.message });
     }
 };
+
 
 const submitQuiz = async (req, res) => {
     try {
@@ -131,14 +144,83 @@ const submitQuiz = async (req, res) => {
             answers: processedAnswers
         });
 
+        // Save quiz score first
         await result.save();
+
+        // -------------------------
+        // FEATURE: STREAK TRACKING
+        // -------------------------
+        const userDoc = await User.findById(req.user.id);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (!userDoc.lastActivityDate) {
+            // First ever activity
+            userDoc.currentStreak = 1;
+            userDoc.lastActivityDate = today;
+        } else {
+            const lastActivity = new Date(userDoc.lastActivityDate);
+            lastActivity.setHours(0, 0, 0, 0);
+
+            const diffTime = Math.abs(today - lastActivity);
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays === 1) {
+                // Activity was yesterday, increment streak
+                userDoc.currentStreak += 1;
+                userDoc.lastActivityDate = today;
+            } else if (diffDays > 1) {
+                // Streak broken, reset to 1
+                userDoc.currentStreak = 1;
+                userDoc.lastActivityDate = today;
+            }
+            // If diffDays === 0, they already studied today, streak stays the same.
+        }
+
+        // FEATURE: XP SYSTEM
+        userDoc.xp = (userDoc.xp || 0) + Math.round(percentage);
+        
+        await userDoc.save();
+
+
+        // ── AUTO-MARK TOPICS AS DONE IF SCORE >= 80% ──────────────────────
+        let autoMarkedTopics = [];
+        if (percentage >= 80 && quiz.topics && quiz.topics.length > 0 && quiz.study_plan) {
+            try {
+                const plan = await StudyPlan.findById(quiz.study_plan);
+                if (plan) {
+                    let updated = false;
+                    quiz.topics.forEach(quizTopic => {
+                        const match = plan.topics.find(
+                            t => !t.completed && t.name.toLowerCase() === quizTopic.toLowerCase()
+                        );
+                        if (match) {
+                            match.completed = true;
+                            autoMarkedTopics.push(match.name);
+                            updated = true;
+                        }
+                    });
+                    if (updated) await plan.save();
+                }
+            } catch (err) {
+                console.error('[AutoMark] Failed to auto-mark topics:', err.message);
+            }
+        }
+
+        // Fire-and-forget progress email (don't block response)
+        User.findById(req.user.id).then(user => {
+            if (user) {
+                sendProgressEmail(user, result, quiz.difficulty, quiz.topics).catch(() => {});
+            }
+        }).catch(() => {});
 
         res.json({
             message: 'Quiz submitted successfully',
             score,
             total: quiz.questions.length,
             percentage,
-            review: processedAnswers
+            review: processedAnswers,
+            autoMarkedTopics  // topics auto-completed due to >= 80% score
         });
 
     } catch (error) {
@@ -158,4 +240,40 @@ const getQuizHistory = async (req, res) => {
     }
 };
 
-module.exports = { generateQuiz, submitQuiz, getQuizHistory };
+// ── GET EXPLANATION FOR A QUESTION ──────────────────────────────
+const explainAnswer = async (req, res) => {
+    try {
+        const { question, options, correctAnswer, userAnswer, topic } = req.body;
+        
+        if (!question || !correctAnswer) {
+            return res.status(400).json({ detail: 'Missing required question data' });
+        }
+
+        const explanation = await explainQuestion(topic || 'General', question, options || [], correctAnswer, userAnswer);
+        
+        res.json({ explanation });
+    } catch (error) {
+        console.error('Explanation Error:', error);
+        res.status(500).json({ detail: 'Failed to generate explanation' });
+    }
+};
+
+// ── GET SINGLE QUIZ RESULT ──────────────────────────────────────
+const getQuizResult = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await QuizResult.findOne({ _id: id, user: req.user.id })
+            .populate('quiz');
+        
+        if (!result) {
+            return res.status(404).json({ detail: 'Quiz result not found' });
+        }
+        
+        res.json(result);
+    } catch (error) {
+        console.error('Fetch Result Error:', error);
+        res.status(500).json({ detail: 'Failed to fetch quiz result' });
+    }
+};
+
+module.exports = { generateQuiz, submitQuiz, getQuizHistory, explainAnswer, getQuizResult };

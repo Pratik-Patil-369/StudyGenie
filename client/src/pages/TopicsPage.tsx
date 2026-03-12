@@ -101,9 +101,9 @@ export default function TopicsPage() {
                     </p>
                 </div>
                 <div className="header-actions">
+                    <Link to="/" className="btn-secondary">⬅ Dashboard</Link>
                     <Link to={`/plans/${id}/quiz`} className="btn-secondary">Take Adaptive Quiz</Link>
                     <Link to={`/plans/${id}/daily-plan`} className="btn-primary">Daily Study Plan</Link>
-                    <Link to="/" className="btn-secondary">Back</Link>
                 </div>
             </div>
 

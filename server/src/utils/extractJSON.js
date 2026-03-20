@@ -25,7 +25,34 @@ function extractJSON(text) {
     throw new Error('No JSON structure found in AI response');
   }
 
-  return JSON.parse(text.substring(startIdx, endIdx + 1));
+  let jsonStr = text.substring(startIdx, endIdx + 1);
+  
+  // Sanitize the JSON string precisely:
+  // We only want to escape control characters (like newlines) if they are 
+  // INSIDE a string literal ("..."). Outside of strings, newlines are 
+  // valid JSON whitespace.
+  const sanitized = jsonStr.replace(/"([^"\\]*(?:\\.[^"\\]*)*)"/gs, (match, p1) => {
+    // Inside the captured string content (p1), escape forbidden control characters
+    return '"' + p1
+      .replace(/\n/g, '\\n')
+      .replace(/\r/g, '\\r')
+      .replace(/\t/g, '\\t') + '"';
+  });
+
+  try {
+    return JSON.parse(sanitized);
+  } catch (err) {
+    // Fallback: If precision sanitation failed, try a final blind cleanup 
+    // of the original string (risky but better than a total crash)
+    try {
+      const blindCleaned = jsonStr.replace(/[\n\r\t]/g, ' ');
+      return JSON.parse(blindCleaned);
+    } catch (finalErr) {
+      console.error('Failed to parse even with sanitation. Original text snippet:', text.substring(0, 100));
+      console.error('Sanitized string attempt:', sanitized.substring(0, 100));
+      throw err;
+    }
+  }
 }
 
 module.exports = { extractJSON };

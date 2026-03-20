@@ -61,4 +61,6 @@ const studyPlanSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
+studyPlanSchema.index({ user: 1 }); // Optimize lookups for user study plans
+
 module.exports = mongoose.model('StudyPlan', studyPlanSchema);

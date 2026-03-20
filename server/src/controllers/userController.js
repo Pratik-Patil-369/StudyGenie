@@ -81,4 +81,63 @@ const getUserStats = async (req, res) => {
     }
 };
 
-module.exports = { getLeaderboard, getUserProfile, getUserStats };
+const updateUserProfile = async (req, res) => {
+    try {
+        const { full_name, daily_reminders, study_hours } = req.body;
+        const user = await User.findById(req.user.id);
+        
+        if (!user) {
+            return res.status(404).json({ detail: 'User not found' });
+        }
+
+        if (full_name !== undefined) user.full_name = full_name;
+        if (daily_reminders !== undefined) user.daily_reminders = daily_reminders;
+        if (study_hours !== undefined) user.study_hours = study_hours;
+
+        await user.save();
+        
+        // Return without password
+        const updatedUser = await User.findById(req.user.id).select('-password');
+        res.json(updatedUser);
+    } catch (error) {
+        console.error('Update profile error:', error);
+        res.status(500).json({ detail: 'Failed to update profile' });
+    }
+};
+
+/**
+ * Update current user's password
+ * @route PUT /api/users/password
+ */
+const bcrypt = require('bcryptjs');
+
+const updateUserPassword = async (req, res) => {
+    try {
+        const { current_password, new_password } = req.body;
+        
+        if (!current_password || !new_password) {
+            return res.status(400).json({ detail: 'Please provide both current and new passwords' });
+        }
+
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            return res.status(404).json({ detail: 'User not found' });
+        }
+
+        const isMatch = await bcrypt.compare(current_password, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ detail: 'Incorrect current password' });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(new_password, salt);
+        await user.save();
+
+        res.json({ message: 'Password updated successfully' });
+    } catch (error) {
+        console.error('Update password error:', error);
+        res.status(500).json({ detail: 'Failed to update password' });
+    }
+};
+
+module.exports = { getLeaderboard, getUserProfile, getUserStats, updateUserProfile, updateUserPassword };

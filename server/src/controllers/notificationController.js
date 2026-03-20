@@ -65,4 +65,64 @@ const sendDailyReminder = async (req, res) => {
     }
 };
 
-module.exports = { sendDailyReminder };
+const Notification = require('../models/Notification');
+
+/**
+ * Get all notifications for the current user
+ */
+const getNotifications = async (req, res) => {
+    try {
+        const notifications = await Notification.find({ user: req.user.id })
+            .sort({ createdAt: -1 })
+            .limit(50);
+        
+        const unreadCount = await Notification.countDocuments({ user: req.user.id, read: false });
+
+        res.json({
+            notifications,
+            unreadCount
+        });
+    } catch (error) {
+        console.error('Fetch notifications error:', error);
+        res.status(500).json({ detail: 'Failed to fetch notifications' });
+    }
+};
+
+/**
+ * Mark a single notification as read
+ */
+const markAsRead = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const notification = await Notification.findOneAndUpdate(
+            { _id: id, user: req.user.id },
+            { read: true },
+            { new: true }
+        );
+
+        if (!notification) {
+            return res.status(404).json({ detail: 'Notification not found' });
+        }
+
+        res.json(notification);
+    } catch (error) {
+        res.status(500).json({ detail: 'Failed to update notification' });
+    }
+};
+
+/**
+ * Mark all notifications as read
+ */
+const markAllAsRead = async (req, res) => {
+    try {
+        await Notification.updateMany(
+            { user: req.user.id, read: false },
+            { read: true }
+        );
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ detail: 'Failed to update notifications' });
+    }
+};
+
+module.exports = { sendDailyReminder, getNotifications, markAsRead, markAllAsRead };

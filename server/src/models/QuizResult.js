@@ -34,4 +34,7 @@ const quizResultSchema = new mongoose.Schema({
     }
 });
 
+quizResultSchema.index({ user: 1 });
+quizResultSchema.index({ quiz: 1 });
+
 module.exports = mongoose.model('QuizResult', quizResultSchema);

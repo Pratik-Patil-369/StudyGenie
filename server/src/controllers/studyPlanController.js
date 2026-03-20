@@ -21,4 +21,16 @@ const deletePlan = async (req, res) => {
   }
 };
 
-module.exports = { getPlans, deletePlan };
+const getPlanById = async (req, res) => {
+  try {
+    const plan = await StudyPlan.findOne({ _id: req.params.id, user: req.user.id });
+    if (!plan) {
+      return res.status(404).json({ detail: 'Plan not found' });
+    }
+    res.json(plan);
+  } catch (error) {
+    res.status(500).json({ detail: 'Server error' });
+  }
+};
+
+module.exports = { getPlans, deletePlan, getPlanById };

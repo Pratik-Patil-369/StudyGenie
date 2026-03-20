@@ -31,9 +31,30 @@ const userSchema = new mongoose.Schema({
   full_name: {
     type: String,
     trim: true
+  },
+  isVerified: {
+    type: Boolean,
+    default: false
+  },
+  otp: {
+    code: String,
+    expiresAt: Date
+  },
+  loginProvider: {
+    type: String,
+    enum: ['local', 'google'],
+    default: 'local'
+  },
+  googleId: {
+    type: String,
+    unique: true,
+    sparse: true
   }
 }, {
   timestamps: true,
 });
+
+userSchema.index({ xp: -1 }); // For leaderboard sorting
+userSchema.index({ currentStreak: -1 }); // For streak sorting
 
 module.exports = mongoose.model('User', userSchema);

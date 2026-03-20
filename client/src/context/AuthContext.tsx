@@ -11,9 +11,11 @@ interface User {
 
 interface AuthContextType {
     user: User | null;
-    login: (email: string, password: string) => Promise<void>;
-    register: (email: string, password: string, fullName: string) => Promise<void>;
+    login: (email: string, password: string) => Promise<any>;
+    register: (email: string, password: string, fullName: string) => Promise<any>;
+    googleLogin: (idToken: string) => Promise<any>;
     logout: () => Promise<void>;
+    fetchUser: () => Promise<void>;
     isLoading: boolean;
 }
 
@@ -66,11 +68,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
         if (!res.ok) {
             setIsLoading(false);
-            throw new Error((await res.json()).detail || 'Login failed');
+            const errorData = await res.json();
+            // If verification is required, return the data instead of throwing
+            if (res.status === 403 && errorData.verificationRequired) {
+                return errorData;
+            }
+            throw new Error(errorData.detail || 'Login failed');
         }
         const data = await res.json();
         setUser(data.user);
         setIsLoading(false);
+        return data;
     };
 
     const register = async (email: string, password: string, fullName: string) => {
@@ -81,8 +89,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             credentials: 'include',
             body: JSON.stringify({ email, password, full_name: fullName }),
         });
+        const data = await res.json();
         setIsLoading(false);
-        if (!res.ok) throw new Error((await res.json()).detail || 'Registration failed');
+        if (!res.ok) throw new Error(data.detail || 'Registration failed');
+        return data;
+    };
+
+    const googleLogin = async (idToken: string) => {
+        setIsLoading(true);
+        const res = await fetch(`${API_BASE}/auth/google`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ idToken }),
+        });
+        const data = await res.json();
+        setIsLoading(false);
+        if (!res.ok) throw new Error(data.detail || 'Google login failed');
+        setUser(data.user);
+        return data;
     };
 
     const logout = async () => {
@@ -96,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, register, logout, isLoading }}>
+        <AuthContext.Provider value={{ user, login, register, googleLogin, logout, fetchUser, isLoading }}>
             {children}
         </AuthContext.Provider>
     );

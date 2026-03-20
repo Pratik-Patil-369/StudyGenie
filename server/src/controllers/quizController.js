@@ -45,7 +45,6 @@ const getAdaptiveDifficulty = async (userId) => {
 const generateQuiz = async (req, res) => {
     try {
         const { planId } = req.params;
-        // Optional: caller can pass specific topics (e.g. day-wise quiz from DailyPlanPage)
         const requestedTopics = req.body?.topics;
 
         const plan = await StudyPlan.findOne({ _id: planId, user: req.user.id });
@@ -54,11 +53,10 @@ const generateQuiz = async (req, res) => {
         let quizTopics;
 
         if (requestedTopics && Array.isArray(requestedTopics) && requestedTopics.length > 0) {
-            // Day-wise quiz: use the specific topics passed by the caller
             quizTopics = requestedTopics;
         } else {
-            // Adaptive quiz: use all completed topics
             const completedTopics = plan.topics.filter(t => t.completed).map(t => t.name);
+
             if (completedTopics.length === 0) {
                 return res.status(400).json({ detail: 'Complete at least one topic to generate a quiz!' });
             }
@@ -67,10 +65,33 @@ const generateQuiz = async (req, res) => {
 
         const difficulty = await getAdaptiveDifficulty(req.user.id);
 
+        const recentMistakes = await QuizResult.find({ user: req.user.id })
+            .sort({ completed_at: -1 })
+            .limit(3)
+            .populate('quiz');
+            
+        let wrongQuestions = [];
+        recentMistakes.forEach(result => {
+            if (!result.quiz || !result.quiz.questions) return;
+            result.answers.forEach(ans => {
+                if (!ans.is_correct) {
+                    const q = result.quiz.questions[ans.question_index];
+                    if (q && q.question) wrongQuestions.push(q.question);
+                }
+            });
+        });
+
+        let weakAreasTxt = "";
+        if (wrongQuestions.length > 0) {
+            const uniqueWrong = [...new Set(wrongQuestions)].slice(0, 5);
+            weakAreasTxt = `\nContext: The student previously struggled with concepts related to these questions:\n- ${uniqueWrong.join('\n- ')}\nPlease ensure your new questions heavily target and test these specific weak areas to help them improve.`;
+        }
+
         const prompt = `
             Generate a multiple-choice quiz based on these study topics: ${quizTopics.join(', ')}.
             Difficulty Level: ${difficulty}
             Number of questions: 5
+            ${weakAreasTxt}
             
             Return a JSON array of objects, each with:
             - question (string)
@@ -112,7 +133,6 @@ const generateQuiz = async (req, res) => {
     }
 };
 
-
 const submitQuiz = async (req, res) => {
     try {
         const { quizId } = req.params;
@@ -144,8 +164,15 @@ const submitQuiz = async (req, res) => {
             answers: processedAnswers
         });
 
-        // Save quiz score first
         await result.save();
+
+        const Notification = require('../models/Notification');
+        await Notification.create({
+            user: req.user.id,
+            type: 'system',
+            message: `You earned ${Math.round(percentage)} XP on your recent quiz. Great job!`,
+            link: '/leaderboard'
+        }).catch(err => console.error('Failed to create notification', err));
 
         // -------------------------
         // FEATURE: STREAK TRACKING
@@ -155,7 +182,6 @@ const submitQuiz = async (req, res) => {
         today.setHours(0, 0, 0, 0);
 
         if (!userDoc.lastActivityDate) {
-            // First ever activity
             userDoc.currentStreak = 1;
             userDoc.lastActivityDate = today;
         } else {
@@ -166,22 +192,16 @@ const submitQuiz = async (req, res) => {
             const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
             if (diffDays === 1) {
-                // Activity was yesterday, increment streak
                 userDoc.currentStreak += 1;
                 userDoc.lastActivityDate = today;
             } else if (diffDays > 1) {
-                // Streak broken, reset to 1
                 userDoc.currentStreak = 1;
                 userDoc.lastActivityDate = today;
             }
-            // If diffDays === 0, they already studied today, streak stays the same.
         }
 
-        // FEATURE: XP SYSTEM
         userDoc.xp = (userDoc.xp || 0) + Math.round(percentage);
-        
         await userDoc.save();
-
 
         // ── AUTO-MARK TOPICS AS DONE IF SCORE >= 80% ──────────────────────
         let autoMarkedTopics = [];
@@ -207,7 +227,6 @@ const submitQuiz = async (req, res) => {
             }
         }
 
-        // Fire-and-forget progress email (don't block response)
         User.findById(req.user.id).then(user => {
             if (user) {
                 sendProgressEmail(user, result, quiz.difficulty, quiz.topics).catch(() => {});
@@ -220,7 +239,7 @@ const submitQuiz = async (req, res) => {
             total: quiz.questions.length,
             percentage,
             review: processedAnswers,
-            autoMarkedTopics  // topics auto-completed due to >= 80% score
+            autoMarkedTopics
         });
 
     } catch (error) {

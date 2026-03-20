@@ -142,4 +142,50 @@ async function sendProgressEmail(user, quizResult, difficulty = 'medium', topics
     }
 }
 
-module.exports = { sendDailyReminderEmail, sendProgressEmail };
+/**
+ * Sends a 6-digit OTP verification email to a user.
+ * @param {Object} user - { email, full_name }
+ * @param {string} otp - 6-digit code
+ * @param {number} expiryMinutes
+ */
+async function sendOTPEmail(user, otp, expiryMinutes = 10) {
+    const transporter = createTransporter();
+    if (!transporter) return { success: false, reason: 'Email not configured' };
+
+    const html = `
+    <div style="font-family:'Inter',Arial,sans-serif;background:#020617;color:#f8fafc;max-width:600px;margin:auto;border-radius:16px;overflow:hidden;border:1px solid rgba(45,212,191,0.2);">
+      <div style="background:linear-gradient(135deg,#0f172a,#1e293b);padding:32px 40px;text-align:center;border-bottom:1px solid rgba(45,212,191,0.2);">
+        <h1 style="color:#2dd4bf;font-size:28px;margin:0;font-weight:900;letter-spacing:-1px;">StudyGenie</h1>
+        <p style="color:#94a3b8;margin:8px 0 0;font-size:14px;">Verify Your Identity</p>
+      </div>
+      <div style="padding:40px;text-align:center;">
+        <h2 style="color:#f8fafc;font-size:22px;margin:0 0 16px;">One-Time Password (OTP)</h2>
+        <p style="color:#94a3b8;margin:0 0 32px;line-height:1.6;">Hey ${user.full_name || 'Student'}, please use the code below to verify your email address. This code will expire in <strong>${expiryMinutes} minutes</strong>.</p>
+        
+        <div style="background:rgba(45,212,191,0.1);border:1px dashed rgba(45,212,191,0.4);border-radius:12px;padding:24px;margin-bottom:32px;display:inline-block;min-width:240px;">
+          <div style="font-size:48px;font-weight:900;color:#2dd4bf;letter-spacing:8px;line-height:1;">${otp}</div>
+        </div>
+
+        <p style="color:#64748b;font-size:13px;margin:0;">If you didn't request this code, you can safely ignore this email.</p>
+      </div>
+      <div style="padding:20px 40px;border-top:1px solid rgba(255,255,255,0.06);text-align:center;">
+        <p style="color:#475569;font-size:12px;margin:0;">&copy; ${new Date().getFullYear()} StudyGenie. Security verification.</p>
+      </div>
+    </div>`;
+
+    try {
+        await transporter.sendMail({
+            from: config.emailFrom || `StudyGenie <${config.emailUser}>`,
+            to: user.email,
+            subject: `🔐 Your StudyGenie Verification Code: ${otp}`,
+            html,
+        });
+        console.log(`[Email] OTP sent to ${user.email}`);
+        return { success: true };
+    } catch (err) {
+        console.error('[Email] Failed to send OTP:', err.message);
+        return { success: false, reason: err.message };
+    }
+}
+
+module.exports = { sendDailyReminderEmail, sendProgressEmail, sendOTPEmail };

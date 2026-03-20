@@ -13,8 +13,7 @@ const callChatCompletionAPI = async (url, apiKey, model, prompt, providerName) =
         model: model,
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.7,
-        max_tokens: 4096,
-        response_format: { type: 'json_object' }
+        max_tokens: 4096
     };
 
     // Special handling for Ollama's non-standard format if needed
@@ -83,8 +82,9 @@ const generateWithAI = async (prompt) => {
         return await providers[preferredProvider](prompt);
     }
 
-    // Auto / Fallback strategy: Local -> Groq -> Gemini
-    const fallbackOrder = ['local', 'groq', 'gemini'];
+    // Auto / Fallback strategy: Local -> Groq
+    // User requested to disable Gemini as they mainly use Groq
+    const fallbackOrder = ['local', 'groq'];
     
     for (const providerKey of fallbackOrder) {
         try {
@@ -110,8 +110,9 @@ Correct Answer: ${correctAnswer}
 ${userAnswer ? `User Answer (Incorrect): ${userAnswer}` : ''}
 
 Provide a short, 2-3 paragraph explanation of WHY the correct answer is right ${userAnswer ? 'and WHY the user answer is wrong' : ''}. Use a friendly, encouraging tone. 
-Return your response STRICTLY as a JSON object with a single key "explanation" containing the text.
-Example: {"explanation": "Your text here..."}
+Return your response STRICTLY as a JSON object with a single key "explanation" containing the text. 
+IMPORTANT: Use "\\n" for newlines instead of literal newlines to ensure valid JSON.
+Example: {"explanation": "Paragraph 1.\\n\\nParagraph 2."}
 `;
 
     try {

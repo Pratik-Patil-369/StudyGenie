@@ -4,6 +4,8 @@ const multer = require('multer');
 const pdfParse = require('pdf-parse');
 const StudyPlan = require('../models/StudyPlan');
 const { extractTopics } = require('../utils/topicExtractor');
+const { generateWithAI } = require('../utils/aiService');
+const { extractJSON } = require('../utils/extractJSON');
 
 const uploadsDir = path.join(__dirname, '../../uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -73,6 +75,29 @@ const createPlanWithFile = (req, res) => {
         const cleanedText = fileText.replace(/\s+/g, '').trim();
         if (cleanedText.length > 10) {
           topics = extractTopics(fileText);
+          
+          // AI Fallback for poor regex extraction
+          if (topics.length < 3 && fileText.length > 200) {
+              console.log('Regex extracted < 3 topics. Falling back to AI extraction...');
+              try {
+                  const prompt = `Extract the main study topics and subtopics from the following syllabus text. Return ONLY a JSON array of objects, where each object has a "name" (string) and "subtopics" (array of strings). Do not include any other text or markdown block markers.\n\nSyllabus:\n${fileText.slice(0, 15000)}`;
+                  const aiResult = await generateWithAI(prompt);
+                  const parsed = extractJSON(aiResult.text);
+                  
+                  if (Array.isArray(parsed) && parsed.length > 0) {
+                      topics = parsed.map((t, i) => ({
+                          name: t.name || `Topic ${i + 1}`,
+                          subtopics: Array.isArray(t.subtopics) ? t.subtopics.filter(s => typeof s === 'string') : [],
+                          order: i
+                      }));
+                      console.log(`AI successfully extracted ${topics.length} topics.`);
+                  }
+              } catch (aiErr) {
+                  console.error('AI Topic Extraction Fallback Failed:', aiErr.message);
+                  // Will gracefully continue with whatever regex found
+              }
+          }
+          
           syllabusText = fileText.slice(0, 10000);
         } else {
           warning = 'This PDF appears to be scanned/image-based. Text could not be extracted automatically. Please add topics manually on the topics page.';
@@ -99,6 +124,14 @@ const createPlanWithFile = (req, res) => {
         syllabus_file_name: syllabusFileName,
         syllabus_file_path: syllabusFilePath,
       });
+
+      const Notification = require('../models/Notification');
+      await Notification.create({
+        user: req.user.id,
+        type: 'study_plan_ready',
+        message: `Your new study plan "${title}" has been successfully generated!`,
+        link: `/study-plan/${plan._id}`
+      }).catch(err => console.error('Failed to create notification', err));
 
       const response = plan.toObject();
       if (warning) {

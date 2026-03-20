@@ -16,4 +16,7 @@ module.exports = {
   emailUser: process.env.EMAIL_USER || '',
   emailPass: process.env.EMAIL_PASS || '',
   emailFrom: process.env.EMAIL_FROM || '',
+  // Google SSO
+  googleClientId: process.env.GOOGLE_CLIENT_ID || '',
+  googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
 };

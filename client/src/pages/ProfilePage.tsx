@@ -1,183 +1,164 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { apiGet } from '../utils/api';
-import './ProfilePage.css';
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+import { apiGet } from '../utils/api'
+import { Flame, Medal, Book, CheckCircle, Brain, Target, Loader2 } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/utils'
 
 interface UserStats {
-    totalPlans: number;
-    completedTopics: number;
-    totalTopics: number;
-    totalQuizzes: number;
-    avgScore: number;
+    totalPlans: number
+    completedTopics: number
+    totalTopics: number
+    totalQuizzes: number
+    avgScore: number
 }
 
 interface QuizResult {
-    _id: string;
-    quiz: {
-        _id: string;
-        study_plan: string;
-        topics: string[];
-    };
-    score: number;
-    total_questions: number;
-    percentage: number;
-    completed_at: string;
+    _id: string
+    quiz: { _id: string; study_plan: string; topics: string[] }
+    score: number
+    total_questions: number
+    percentage: number
+    completed_at: string
 }
 
 export default function ProfilePage() {
-    const { user } = useAuth();
-    const navigate = useNavigate();
-    const [stats, setStats] = useState<UserStats | null>(null);
-    const [history, setHistory] = useState<QuizResult[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { user } = useAuth()
+    const navigate = useNavigate()
+    const [stats, setStats] = useState<UserStats | null>(null)
+    const [history, setHistory] = useState<QuizResult[]>([])
+    const [loading, setLoading] = useState(true)
 
-    useEffect(() => {
-        fetchStats();
-    }, []);
+    useEffect(() => { fetchStats() }, [])
 
     const fetchStats = async () => {
         try {
-            setLoading(true);
-            const [statsData, historyData] = await Promise.all([
-                apiGet('/users/stats'),
-                apiGet('/quizzes/quiz-history')
-            ]);
-            setStats(statsData);
-            setHistory(historyData);
+            setLoading(true)
+            const [statsData, historyData] = await Promise.all([apiGet('/users/stats'), apiGet('/quizzes/quiz-history')])
+            setStats(statsData)
+            setHistory(historyData)
         } catch (error) {
-            console.error('Failed to fetch user stats', error);
+            console.error('Failed to fetch user stats', error)
         } finally {
-            setLoading(false);
+            setLoading(false)
         }
-    };
-
-    if (loading) {
-        return (
-            <div className="page-loader">
-                <div className="page-loader-spinner" />
-                <p className="page-loader-text">Loading profile...</p>
-            </div>
-        );
     }
 
-    const completionRate = stats && stats.totalTopics > 0 
-        ? Math.round((stats.completedTopics / stats.totalTopics) * 100) 
-        : 0;
+    const completionRate = stats && stats.totalTopics > 0 ? Math.round((stats.completedTopics / stats.totalTopics) * 100) : 0
 
-    return (
-        <div className="profile-page">
-            <div className="profile-header glass-card">
-                <div className="profile-avatar">
-                    {user?.full_name ? user.full_name.charAt(0).toUpperCase() : user?.email.charAt(0).toUpperCase()}
-                </div>
-                <div className="profile-info">
-                    <h1>{user?.full_name || 'Student'}</h1>
-                    <p className="profile-email">{user?.email}</p>
-                    <div className="profile-badges">
-                        {user?.currentStreak !== undefined && user.currentStreak > 0 && (
-                            <span className="badge badge-fire">🔥 {user.currentStreak} Day Streak</span>
-                        )}
-                        <span className="badge badge-xp">🥇 {user?.xp || 0} XP</span>
-                    </div>
-                </div>
-            </div>
-
-            <div className="stats-grid">
-                <div className="stat-card glass-card">
-                    <div className="stat-icon">📚</div>
-                    <div className="stat-details">
-                        <h3>Study Plans</h3>
-                        <p className="stat-value">{stats?.totalPlans || 0}</p>
-                        <p className="stat-label">Total Created</p>
-                    </div>
-                </div>
-
-                <div className="stat-card glass-card">
-                    <div className="stat-icon">✅</div>
-                    <div className="stat-details">
-                        <h3>Topics Done</h3>
-                        <p className="stat-value">{stats?.completedTopics || 0} <span className="stat-of">/ {stats?.totalTopics || 0}</span></p>
-                        <p className="stat-label">{completionRate}% Completion Rate</p>
-                    </div>
-                </div>
-
-                <div className="stat-card glass-card">
-                    <div className="stat-icon">🧠</div>
-                    <div className="stat-details">
-                        <h3>Quizzes Taken</h3>
-                        <p className="stat-value">{stats?.totalQuizzes || 0}</p>
-                        <p className="stat-label">Total Attempts</p>
-                    </div>
-                </div>
-
-                <div className="stat-card glass-card">
-                    <div className="stat-icon">🎯</div>
-                    <div className="stat-details">
-                        <h3>Avg Score</h3>
-                        <p className="stat-value">{stats?.avgScore || 0}%</p>
-                        <p className="stat-label">Across all quizzes</p>
-                    </div>
-                </div>
-            </div>
-
-            <div className="history-section glass-card" style={{ padding: '2rem', marginTop: '1rem' }}>
-                <h2 style={{ marginBottom: '1.5rem', color: '#fff' }}>Recent Quizzes</h2>
-                
-                {history.length === 0 ? (
-                    <p style={{ color: 'var(--text-muted)' }}>You haven't taken any quizzes yet. Generate a study plan to get started!</p>
-                ) : (
-                    <div className="table-responsive">
-                        <table className="history-table">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Topic(s)</th>
-                                    <th>Score</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {history.map(item => (
-                                    <tr key={item._id}>
-                                        <td>{new Date(item.completed_at).toLocaleDateString()}</td>
-                                        <td>
-                                            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                                {item.quiz?.topics.map((t, idx) => (
-                                                    <span key={idx} className="topic-tag">{t}</span>
-                                                ))}
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <span className={`score-badge ${item.percentage >= 80 ? 'score-high' : item.percentage >= 50 ? 'score-med' : 'score-low'}`}>
-                                                {item.percentage}%
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <div style={{ display: 'flex', gap: '0.75rem' }}>
-                                                <button 
-                                                    className="btn-secondary" 
-                                                    style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}
-                                                    onClick={() => navigate(`/review/${item._id}`)}
-                                                >
-                                                    Review
-                                                </button>
-                                                <button 
-                                                    className="btn-primary" 
-                                                    style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}
-                                                    onClick={() => navigate(`/plans/${item.quiz.study_plan}/quiz?topics=${encodeURIComponent(item.quiz.topics.join(','))}`)}
-                                                >
-                                                    Retake
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
+    if (loading) return (
+        <div className="space-y-6 animate-fade-in">
+            <Card><CardContent className="p-6 flex items-center gap-4">
+                <Skeleton className="h-16 w-16 rounded-full" />
+                <div className="space-y-2"><Skeleton className="h-6 w-40" /><Skeleton className="h-4 w-56" /></div>
+            </CardContent></Card>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {[1, 2, 3, 4].map(i => <Card key={i}><CardContent className="p-5"><Skeleton className="h-12 w-12 rounded-lg mb-3" /><Skeleton className="h-6 w-16 mb-1" /><Skeleton className="h-4 w-24" /></CardContent></Card>)}
             </div>
         </div>
-    );
+    )
+
+    const statCards = [
+        { label: 'Study Plans', value: stats?.totalPlans || 0, sub: 'Total Created', icon: Book, color: 'text-blue-400' },
+        { label: 'Topics Done', value: `${stats?.completedTopics || 0} / ${stats?.totalTopics || 0}`, sub: `${completionRate}% Completion`, icon: CheckCircle, color: 'text-mastered' },
+        { label: 'Quizzes Taken', value: stats?.totalQuizzes || 0, sub: 'Total Attempts', icon: Brain, color: 'text-violet-400' },
+        { label: 'Avg Score', value: `${stats?.avgScore || 0}%`, sub: 'Across all quizzes', icon: Target, color: 'text-primary' },
+    ]
+
+    return (
+        <div className="space-y-6 animate-fade-in">
+            {/* Profile header */}
+            <Card>
+                <CardContent className="p-6 flex flex-col sm:flex-row items-center gap-4">
+                    <Avatar className="h-16 w-16 text-xl">
+                        <AvatarFallback className="bg-primary/10 text-primary text-xl font-bold">
+                            {user?.full_name ? user.full_name.charAt(0).toUpperCase() : user?.email.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                    </Avatar>
+                    <div className="text-center sm:text-left flex-1">
+                        <h1 className="text-xl font-bold">{user?.full_name || 'Student'}</h1>
+                        <p className="text-sm text-muted-foreground">{user?.email}</p>
+                    </div>
+                    <div className="flex gap-2">
+                        {user?.currentStreak !== undefined && user.currentStreak > 0 && (
+                            <Badge variant="default" className="bg-orange-500/10 text-orange-500 border-orange-500/20">
+                                <Flame className="h-3.5 w-3.5 mr-1" /> {user.currentStreak} Day Streak
+                            </Badge>
+                        )}
+                        <Badge variant="secondary"><Medal className="h-3.5 w-3.5 mr-1" /> {user?.xp || 0} XP</Badge>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Stats grid */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {statCards.map(({ label, value, sub, icon: Icon, color }) => (
+                    <Card key={label} className="hover:shadow-md transition-shadow">
+                        <CardContent className="p-5">
+                            <div className={cn('inline-flex h-10 w-10 items-center justify-center rounded-lg bg-muted mb-3', color)}>
+                                <Icon className="h-5 w-5" />
+                            </div>
+                            <h3 className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{label}</h3>
+                            <p className="text-2xl font-bold">{value}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
+
+            {/* Quiz history */}
+            <Card>
+                <CardHeader><CardTitle>Recent Quizzes</CardTitle></CardHeader>
+                <CardContent>
+                    {history.length === 0 ? (
+                        <p className="text-muted-foreground py-4">You haven't taken any quizzes yet. Generate a study plan to get started!</p>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="border-b">
+                                        <th className="text-left py-3 px-2 font-medium text-muted-foreground">Date</th>
+                                        <th className="text-left py-3 px-2 font-medium text-muted-foreground">Topic(s)</th>
+                                        <th className="text-left py-3 px-2 font-medium text-muted-foreground">Score</th>
+                                        <th className="text-right py-3 px-2 font-medium text-muted-foreground">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {history.map(item => (
+                                        <tr key={item._id} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
+                                            <td className="py-3 px-2 text-muted-foreground">{new Date(item.completed_at).toLocaleDateString()}</td>
+                                            <td className="py-3 px-2">
+                                                <div className="flex flex-wrap gap-1">
+                                                    {item.quiz?.topics.map((t, idx) => (
+                                                        <Badge key={idx} variant="secondary" className="text-xs">{t}</Badge>
+                                                    ))}
+                                                </div>
+                                            </td>
+                                            <td className="py-3 px-2">
+                                                <Badge variant={item.percentage >= 80 ? 'mastered' : item.percentage >= 50 ? 'revision' : 'weak'}>
+                                                    {item.percentage}%
+                                                </Badge>
+                                            </td>
+                                            <td className="py-3 px-2">
+                                                <div className="flex gap-2 justify-end">
+                                                    <Button variant="outline" size="sm" onClick={() => navigate(`/review/${item._id}`)}>Review</Button>
+                                                    <Button size="sm" onClick={() => navigate(`/plans/${item.quiz.study_plan}/quiz?topics=${encodeURIComponent(item.quiz.topics.join(','))}`)}>Retake</Button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
+    )
 }

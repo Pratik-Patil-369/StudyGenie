@@ -1,104 +1,92 @@
-import { useState, useEffect, useCallback } from 'react';
-import './PomodoroTimer.css';
+import { useState, useEffect, useCallback } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 interface PomodoroTimerProps {
-    defaultWorkTime?: number; // in minutes
-    defaultBreakTime?: number; // in minutes
+    defaultWorkTime?: number
+    defaultBreakTime?: number
 }
 
 export const PomodoroTimer = ({ defaultWorkTime = 25, defaultBreakTime = 5 }: PomodoroTimerProps) => {
-    const [mode, setMode] = useState<'work' | 'break'>('work');
-    const [timeLeft, setTimeLeft] = useState(defaultWorkTime * 60);
-    const [isActive, setIsActive] = useState(false);
+    const [mode, setMode] = useState<'work' | 'break'>('work')
+    const [timeLeft, setTimeLeft] = useState(defaultWorkTime * 60)
+    const [isActive, setIsActive] = useState(false)
 
     const switchMode = useCallback(() => {
-        const newMode = mode === 'work' ? 'break' : 'work';
-        setMode(newMode);
-        setTimeLeft(newMode === 'work' ? defaultWorkTime * 60 : defaultBreakTime * 60);
-        setIsActive(false);
-    }, [mode, defaultWorkTime, defaultBreakTime]);
+        const newMode = mode === 'work' ? 'break' : 'work'
+        setMode(newMode)
+        setTimeLeft(newMode === 'work' ? defaultWorkTime * 60 : defaultBreakTime * 60)
+        setIsActive(false)
+    }, [mode, defaultWorkTime, defaultBreakTime])
 
     useEffect(() => {
-        let interval: ReturnType<typeof setInterval> | null = null;
-
+        let interval: ReturnType<typeof setInterval> | null = null
         if (isActive && timeLeft > 0) {
-            interval = setInterval(() => {
-                setTimeLeft((time) => time - 1);
-            }, 1000);
+            interval = setInterval(() => setTimeLeft((time) => time - 1), 1000)
         } else if (isActive && timeLeft === 0) {
-            // Play a sound when timer finishes (optional, maybe just visual for now)
-            switchMode();
+            switchMode()
         }
+        return () => { if (interval) clearInterval(interval) }
+    }, [isActive, timeLeft, switchMode])
 
-        return () => {
-            if (interval) clearInterval(interval);
-        };
-    }, [isActive, timeLeft, switchMode]);
-
-    const toggleTimer = () => setIsActive(!isActive);
-
+    const toggleTimer = () => setIsActive(!isActive)
     const resetTimer = () => {
-        setIsActive(false);
-        setTimeLeft(mode === 'work' ? defaultWorkTime * 60 : defaultBreakTime * 60);
-    };
+        setIsActive(false)
+        setTimeLeft(mode === 'work' ? defaultWorkTime * 60 : defaultBreakTime * 60)
+    }
 
     const formatTime = (seconds: number) => {
-        const m = Math.floor(seconds / 60);
-        const s = seconds % 60;
-        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    };
+        const m = Math.floor(seconds / 60)
+        const s = seconds % 60
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+    }
 
-    const progressPercentage = mode === 'work'
-        ? ((defaultWorkTime * 60 - timeLeft) / (defaultWorkTime * 60)) * 100
-        : ((defaultBreakTime * 60 - timeLeft) / (defaultBreakTime * 60)) * 100;
+    const totalSeconds = mode === 'work' ? defaultWorkTime * 60 : defaultBreakTime * 60
+    const progressPct = ((totalSeconds - timeLeft) / totalSeconds) * 100
+    const circumference = 54 * 2 * Math.PI
+    const strokeDashoffset = circumference - (progressPct / 100) * circumference
 
     return (
-        <div className={`pomodoro-widget ${mode}`}>
-            <div className="pomodoro-header">
-                <span className="pomodoro-title">
-                    {mode === 'work' ? '🧠 Study Time' : '☕ Break Time'}
-                </span>
-                <div className="pomodoro-toggles">
-                    <button
-                        className={`mode-toggle ${mode === 'work' ? 'active' : ''}`}
-                        onClick={() => { setMode('work'); setTimeLeft(defaultWorkTime * 60); setIsActive(false); }}
-                    >
-                        Work
-                    </button>
-                    <button
-                        className={`mode-toggle ${mode === 'break' ? 'active' : ''}`}
-                        onClick={() => { setMode('break'); setTimeLeft(defaultBreakTime * 60); setIsActive(false); }}
-                    >
-                        Break
-                    </button>
-                </div>
-            </div>
-
-            <div className="pomodoro-display">
-                <div className="time-left">{formatTime(timeLeft)}</div>
-                <div className="progress-ring-container">
-                    <svg className="progress-ring" width="120" height="120">
-                        <circle className="progress-ring-circle-bg" strokeWidth="6" cx="60" cy="60" r="54" />
-                        <circle
-                            className="progress-ring-circle"
-                            strokeWidth="6"
-                            cx="60"
-                            cy="60"
-                            r="54"
-                            style={{ strokeDasharray: `${54 * 2 * Math.PI}`, strokeDashoffset: `${54 * 2 * Math.PI - (progressPercentage / 100) * 54 * 2 * Math.PI}` }}
+        <Card>
+            <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center justify-between">
+                    <span>{mode === 'work' ? '🧠 Study Time' : '☕ Break Time'}</span>
+                    <div className="flex rounded-md overflow-hidden border">
+                        <button
+                            onClick={() => { setMode('work'); setTimeLeft(defaultWorkTime * 60); setIsActive(false) }}
+                            className={cn('px-2.5 py-1 text-xs font-medium transition-colors', mode === 'work' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted')}
+                        >Work</button>
+                        <button
+                            onClick={() => { setMode('break'); setTimeLeft(defaultBreakTime * 60); setIsActive(false) }}
+                            className={cn('px-2.5 py-1 text-xs font-medium transition-colors', mode === 'break' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted')}
+                        >Break</button>
+                    </div>
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center gap-4">
+                {/* Timer SVG */}
+                <div className="relative">
+                    <svg width="120" height="120" className="-rotate-90">
+                        <circle cx="60" cy="60" r="54" strokeWidth="6" className="fill-none stroke-muted" />
+                        <circle cx="60" cy="60" r="54" strokeWidth="6"
+                            className={cn('fill-none transition-all duration-500', mode === 'work' ? 'stroke-primary' : 'stroke-mastered')}
+                            style={{ strokeDasharray: circumference, strokeDashoffset }} strokeLinecap="round"
                         />
                     </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-2xl font-bold font-mono">{formatTime(timeLeft)}</span>
+                    </div>
                 </div>
-            </div>
 
-            <div className="pomodoro-controls">
-                <button className={`btn-primary play-btn ${isActive ? 'paused' : ''}`} onClick={toggleTimer}>
-                    {isActive ? 'Pause' : 'Start'}
-                </button>
-                <button className="btn-secondary reset-btn" onClick={resetTimer}>
-                    Reset
-                </button>
-            </div>
-        </div>
-    );
-};
+                {/* Controls */}
+                <div className="flex gap-2">
+                    <Button size="sm" onClick={toggleTimer} className={cn(mode === 'break' && 'bg-mastered hover:bg-mastered/90')}>
+                        {isActive ? 'Pause' : 'Start'}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={resetTimer}>Reset</Button>
+                </div>
+            </CardContent>
+        </Card>
+    )
+}

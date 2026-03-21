@@ -3,7 +3,6 @@ import {
     PieChart, Pie, Cell, BarChart, Bar, Legend
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
 
 interface QuizResult {
     _id: string

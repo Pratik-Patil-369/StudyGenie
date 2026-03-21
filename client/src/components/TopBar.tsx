@@ -6,10 +6,6 @@ import { apiGet, apiPut } from '../utils/api'
 import { useTheme } from '@/context/ThemeContext'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import {
-    DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-    DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 
 interface Notification {
@@ -29,7 +25,7 @@ export default function TopBar({ onMenuClick }: TopBarProps) {
     const { user } = useAuth()
     const location = useLocation()
     const navigate = useNavigate()
-    const { theme, setTheme, isDark } = useTheme()
+    const { setTheme, isDark } = useTheme()
 
     // Notifications State
     const [notifications, setNotifications] = useState<Notification[]>([])

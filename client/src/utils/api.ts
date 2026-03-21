@@ -26,11 +26,11 @@ export function apiPost(path: string, body?: object) {
     });
 }
 
-export function apiPut(path: string, body: object) {
+export function apiPut(path: string, body?: object) {
     return request(path, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: body ? JSON.stringify(body) : undefined,
     });
 }
 

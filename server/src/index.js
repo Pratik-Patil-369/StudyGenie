@@ -35,14 +35,14 @@ const aiLimiter = rateLimit({
 });
 
 app.use('/api/auth', authRoutes);
-app.use('/api/study-plans', aiLimiter, syllabusRoutes); // Extracting topics uses AI
+app.use('/api/study-plans', aiLimiter, syllabusRoutes);
 app.use('/api/study-plans', studyPlanRoutes);
-app.use('/api/study-plans', aiLimiter, dailyPlanRoutes); // Regenerating daily plan uses AI
-app.use('/api/quizzes', aiLimiter, quizRoutes); // Generating quizzes and explanations uses AI
+app.use('/api/study-plans', aiLimiter, dailyPlanRoutes);
+app.use('/api/quizzes', aiLimiter, quizRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/flashcards', aiLimiter, flashcardRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/chat', aiLimiter, chatRoutes); // Chat Assistant uses AI
+app.use('/api/chat', aiLimiter, chatRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'StudyGenie API is running' });
@@ -50,6 +50,17 @@ app.get('/', (req, res) => {
 
 startEmailScheduler();
 
-app.listen(config.port, () => {
-  console.log(`Server running on http://localhost:${config.port}`);
+const PORT = Number(config.port) || 8000;
+
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on port ${PORT}`);
+});
+
+// Robust error handling for production
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });

@@ -4,7 +4,6 @@ import ProgressCharts from '../components/ProgressCharts'
 import { Loader2, BarChart3 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
 
 export default function AnalyticsPage() {
     const [plans, setPlans] = useState([])

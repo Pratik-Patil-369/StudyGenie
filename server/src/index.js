@@ -1,4 +1,6 @@
 require('dotenv').config();
+const dns = require('dns');
+dns.setDefaultResultOrder('ipv4first');
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
@@ -20,10 +22,12 @@ const config = require('./config');
 connectDB();
 
 const app = express();
+app.set('trust proxy', 1);
 
 app.use(helmet({ contentSecurityPolicy: false }));
-app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
-app.use(express.json());
+app.use(cors({ origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'https://study-genie-khaki.vercel.app'], credentials: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cookieParser());
 
 const aiLimiter = rateLimit({

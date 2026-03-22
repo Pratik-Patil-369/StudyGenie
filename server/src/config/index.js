@@ -19,4 +19,5 @@ module.exports = {
   // Google SSO
   googleClientId: process.env.GOOGLE_CLIENT_ID || '',
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+  bypassOTP: process.env.BYPASS_OTP === 'true',
 };

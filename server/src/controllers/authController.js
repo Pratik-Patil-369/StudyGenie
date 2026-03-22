@@ -49,14 +49,43 @@ const register = async (req, res) => {
         otp: { code: otpCode, expiresAt: otpExpiry }
     });
 
-    // Send Verification Email
-    await sendOTPEmail(user, otpCode);
+    if (config.bypassOTP) {
+      user.isVerified = true;
+      user.otp = undefined;
+      await user.save();
 
-    res.status(201).json({ 
-        message: 'Registration successful. Please check your email for the verification code.', 
+      const token = jwt.sign(
+        { id: user._id, email: user.email },
+        config.jwtSecret,
+        { expiresIn: config.jwtExpiresIn }
+      );
+
+      res.cookie('token', token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none',
+        maxAge: config.cookieMaxAge,
+        path: '/',
+      });
+
+      return res.status(201).json({
+        message: 'Registration successful',
+        user: {
+          id: user._id,
+          email: user.email,
+          full_name: user.full_name,
+          currentStreak: user.currentStreak || 0
+        }
+      });
+    } else {
+      await sendOTPEmail(user, otpCode);
+
+      return res.status(201).json({
+        message: 'Registration successful. Please check your email for the verification code.',
         verificationRequired: true,
         email: user.email
-    });
+      });
+    }
   } catch (error) {
     console.error('Registration error:', error);
     res.status(500).json({ detail: 'Server error' });
@@ -99,8 +128,9 @@ const verifyOTP = async (req, res) => {
         res.cookie('token', token, {
             httpOnly: true,
             secure: config.isProduction,
-            sameSite: 'lax',
+            sameSite: config.isProduction ? 'none' : 'lax',
             maxAge: config.cookieMaxAge,
+            path: '/',
         });
 
         res.json({ 
@@ -176,8 +206,9 @@ const login = async (req, res) => {
     res.cookie('token', token, {
       httpOnly: true,
       secure: config.isProduction,
-      sameSite: 'lax',
+      sameSite: config.isProduction ? 'none' : 'lax',
       maxAge: config.cookieMaxAge,
+      path: '/',
     });
 
     res.json({ message: 'Login successful', user: { id: user._id, email: user.email, full_name: user.full_name, currentStreak: user.currentStreak || 0 } });
@@ -190,7 +221,8 @@ const logout = (req, res) => {
   res.clearCookie('token', {
     httpOnly: true,
     secure: config.isProduction,
-    sameSite: 'lax',
+    sameSite: config.isProduction ? 'none' : 'lax',
+    path: '/',
   });
   res.json({ message: 'Logged out' });
 };
@@ -247,8 +279,9 @@ const googleLogin = async (req, res) => {
         res.cookie('token', token, {
             httpOnly: true,
             secure: config.isProduction,
-            sameSite: 'lax',
+            sameSite: config.isProduction ? 'none' : 'lax',
             maxAge: config.cookieMaxAge,
+            path: '/',
         });
 
         res.json({ 

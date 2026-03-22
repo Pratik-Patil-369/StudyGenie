@@ -12,39 +12,61 @@ import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 
+interface Subtopic {
+    name: string
+    completed: boolean
+}
+
 interface Topic {
     _id?: string
     name: string
-    subtopics: string[]
+    subtopics: Subtopic[]
     order: number
     completed: boolean
 }
 
-function SubtopicList({ subtopics }: { subtopics: string[] }) {
+function SubtopicList({ subtopics, onToggle }: { subtopics: Subtopic[], onToggle: (idx: number) => void }) {
     const [isExpanded, setIsExpanded] = useState(false)
     const shouldShowToggle = subtopics.length > 5
 
     const displayedSubtopics = isExpanded ? subtopics : subtopics.slice(0, 5)
 
     return (
-        <div className="mt-2 ml-7">
-            <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1">
+        <div className="mt-3 ml-7">
+            <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2">
                 {displayedSubtopics.map((sub, si) => (
-                    <li key={si} className="text-xs text-muted-foreground flex items-start gap-1.5">
-                        <span className="text-primary/40 mt-1.5 h-1 w-1 shrink-0 rounded-full bg-current" />
-                        <span className="leading-tight">{sub}</span>
+                    <li key={si} className="group/sub relative flex items-start gap-2.5">
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onToggle(si) }}
+                            className={cn(
+                                "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-all",
+                                sub.completed
+                                    ? "bg-mastered border-mastered text-white"
+                                    : "border-muted-foreground/30 hover:border-primary bg-background"
+                            )}
+                        >
+                            {sub.completed && <Check className="h-2.5 w-2.5" strokeWidth={3} />}
+                        </button>
+                        <span className={cn(
+                            "text-sm transition-colors",
+                            sub.completed ? "text-muted-foreground/60 line-through" : "text-muted-foreground hover:text-foreground cursor-pointer"
+                        )}
+                            onClick={() => onToggle(si)}
+                        >
+                            {sub.name}
+                        </span>
                     </li>
                 ))}
             </ul>
             {shouldShowToggle && (
                 <button
                     onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded) }}
-                    className="mt-2 text-[10px] font-bold uppercase tracking-wider text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
+                    className="mt-4 text-xs font-bold uppercase tracking-wider text-primary hover:text-primary/80 transition-colors flex items-center gap-1.5"
                 >
                     {isExpanded ? (
-                        <>Show Less <ChevronUp className="h-3 w-3" /></>
+                        <>Show Less <ChevronUp className="h-4 w-4" /></>
                     ) : (
-                        <>+ {subtopics.length - 5} more topics <ChevronDown className="h-3 w-3" /></>
+                        <>+ {subtopics.length - 5} more items <ChevronDown className="h-4 w-4" /></>
                     )}
                 </button>
             )}
@@ -71,7 +93,13 @@ export default function TopicsPage() {
     const fetchTopics = async () => {
         try {
             const data = await apiGet(`/study-plans/${id}/topics`)
-            setTopics(data.topics || [])
+            const normalized = (data.topics || []).map((t: any) => ({
+                ...t,
+                subtopics: (t.subtopics || []).map((s: any) =>
+                    typeof s === 'string' ? { name: s, completed: false } : s
+                )
+            }))
+            setTopics(normalized)
             setFileName(data.file_name)
             if (data.plan_title) setPlanTitle(data.plan_title)
         } catch (err) {
@@ -118,6 +146,17 @@ export default function TopicsPage() {
         saveTopics(updated)
         const topic = topics[index]
         toast(topic.completed ? `"${topic.name}" marked incomplete` : `"${topic.name}" completed! ✓`)
+    }
+
+    const toggleSubtopic = (topicIndex: number, subIndex: number) => {
+        const updated = [...topics]
+        const topic = { ...updated[topicIndex] }
+        const subs = [...topic.subtopics]
+        subs[subIndex] = { ...subs[subIndex], completed: !subs[subIndex].completed }
+        topic.subtopics = subs
+        updated[topicIndex] = topic
+        setTopics(updated)
+        saveTopics(updated)
     }
 
     const completedCount = topics.filter(t => t.completed).length
@@ -209,11 +248,21 @@ export default function TopicsPage() {
                                 </button>
 
                                 <div className="flex-1 min-w-0 flex flex-col">
-                                    <span className={cn('font-semibold text-base', topic.completed && 'line-through text-muted-foreground')}>
-                                        {topic.name}
-                                    </span>
+                                    <div className="flex items-center gap-3">
+                                        <span className={cn('font-semibold text-base', topic.completed && 'line-through text-muted-foreground')}>
+                                            {topic.name}
+                                        </span>
+                                        {topic.subtopics.length > 0 && (
+                                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-medium opacity-70">
+                                                {topic.subtopics.filter(s => s.completed).length}/{topic.subtopics.length} items
+                                            </Badge>
+                                        )}
+                                    </div>
                                     {topic.subtopics.length > 0 && (
-                                        <SubtopicList subtopics={topic.subtopics} />
+                                        <SubtopicList
+                                            subtopics={topic.subtopics}
+                                            onToggle={(si) => toggleSubtopic(index, si)}
+                                        />
                                     )}
                                 </div>
 

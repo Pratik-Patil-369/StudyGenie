@@ -134,7 +134,7 @@ export function LoginForm({ onToggle }: AuthFormProps) {
                     }}
                     useOneTap
                     theme="outline"
-                    width="100%"
+                    width="350"
                 />
             </div>
 
@@ -166,6 +166,9 @@ export function RegisterForm({ onToggle }: AuthFormProps) {
             const data = await register(email, password, fullName)
             if (data?.verificationRequired) {
                 navigate('/verify-otp', { state: { email: data.email || email } })
+            } else if (data?.user) {
+                toast.success('Registration successful!')
+                navigate('/dashboard')
             }
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Registration failed')
@@ -276,7 +279,7 @@ export function RegisterForm({ onToggle }: AuthFormProps) {
                     }}
                     useOneTap
                     theme="outline"
-                    width="100%"
+                    width="350"
                 />
             </div>
 

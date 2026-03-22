@@ -63,6 +63,11 @@ const generateQuiz = async (req, res) => {
             quizTopics = completedTopics;
         }
 
+        // Prevent overloading AI prompt context window
+        if (quizTopics.length > 5) {
+            quizTopics = quizTopics.sort(() => 0.5 - Math.random()).slice(0, 5);
+        }
+
         const difficulty = await getAdaptiveDifficulty(req.user.id);
 
         const recentMistakes = await QuizResult.find({ user: req.user.id })

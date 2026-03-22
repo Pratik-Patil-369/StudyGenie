@@ -3,7 +3,7 @@ const fs = require('fs');
 const multer = require('multer');
 const pdfParse = require('pdf-parse');
 const StudyPlan = require('../models/StudyPlan');
-const { extractTopics } = require('../utils/topicExtractor');
+const extractTopics = require('../utils/topicExtractor');
 const { generateWithAI } = require('../utils/aiService');
 const { extractJSON } = require('../utils/extractJSON');
 
@@ -76,25 +76,37 @@ const createPlanWithFile = (req, res) => {
         if (cleanedText.length > 10) {
           topics = extractTopics(fileText);
           
-          // AI Fallback for poor regex extraction
-          if (topics.length < 3 && fileText.length > 200) {
-              console.log('Regex extracted < 3 topics. Falling back to AI extraction...');
+          // Calculate average topic length to detect "fragmentation"
+          const avgLength = topics.length > 0 ? topics.reduce((acc, t) => acc + t.name.length, 0) / topics.length : 0;
+          const isFragmented = topics.length > 40 && avgLength < 25;
+
+          // AI Cleanup/Fallback for poor or messy regex extraction
+          if ((topics.length < 3 || isFragmented) && fileText.length > 200) {
+              console.log(isFragmented ? `Extraction looks fragmented (${topics.length} topics). Triggering AI Cleanup...` : 'Poor regex extraction. Triggering AI Fallback...');
               try {
-                  const prompt = `Extract the main study topics and subtopics from the following syllabus text. Return ONLY a JSON array of objects, where each object has a "name" (string) and "subtopics" (array of strings). Do not include any other text or markdown block markers.\n\nSyllabus:\n${fileText.slice(0, 15000)}`;
+                  const prompt = `You are a professional educational syllabus analyzer. 
+                    Extract the main conceptual study topics and subtopics from the following text.
+                    Rules:
+                    1. Focus on actual chapters and conceptual headings.
+                    2. IGNORE technical flags (like ACK, SYN, FIN), hexadecimal codes (0x0000), page numbers, and formatting artifacts.
+                    3. Structure as a JSON array of objects with "name" (string) and "subtopics" (array of objects with "name").
+                    4. Do not include markdown block markers.
+                    
+                    Syllabus Text:\n${fileText.slice(0, 15000)}`;
+
                   const aiResult = await generateWithAI(prompt);
                   const parsed = extractJSON(aiResult.text);
                   
                   if (Array.isArray(parsed) && parsed.length > 0) {
                       topics = parsed.map((t, i) => ({
                           name: t.name || `Topic ${i + 1}`,
-                          subtopics: Array.isArray(t.subtopics) ? t.subtopics.filter(s => typeof s === 'string') : [],
+                          subtopics: Array.isArray(t.subtopics) ? t.subtopics.map(s => typeof s === 'string' ? { name: s, completed: false } : { name: s.name || 'Unknown', completed: !!s.completed }) : [],
                           order: i
                       }));
-                      console.log(`AI successfully extracted ${topics.length} topics.`);
+                      console.log(`AI successfully cleaned/extracted ${topics.length} conceptual topics.`);
                   }
               } catch (aiErr) {
-                  console.error('AI Topic Extraction Fallback Failed:', aiErr.message);
-                  // Will gracefully continue with whatever regex found
+                  console.error('AI Topic Extraction Cleanup Failed:', aiErr.message);
               }
           }
           

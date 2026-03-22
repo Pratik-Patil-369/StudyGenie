@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import { ShieldCheck, ArrowLeft, RefreshCw, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,6 +10,7 @@ import { apiPost } from '../utils/api'
 export default function OTPPage() {
     const navigate = useNavigate()
     const location = useLocation()
+    const { fetchUser } = useAuth()
     const email = location.state?.email
 
     const [otp, setOtp] = useState(['', '', '', '', '', ''])
@@ -58,6 +60,7 @@ export default function OTPPage() {
         setIsLoading(true)
         try {
             await apiPost('/auth/verify-otp', { email, code })
+            await fetchUser()
             toast('Email verified successfully! Welcome to StudyGenie.', 'success')
             navigate('/dashboard')
         } catch (err: any) {

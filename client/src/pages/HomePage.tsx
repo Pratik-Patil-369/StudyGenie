@@ -55,7 +55,7 @@ export default function HomePage() {
             setPlans(plansRes)
             setQuizHistory(historyRes)
         } catch (err) {
-            console.error('Failed to fetch dashboard data')
+            console.error('Failed to fetch dashboard data:', err instanceof Error ? err.message : err)
         } finally {
             setLoading(false)
         }

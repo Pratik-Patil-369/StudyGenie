@@ -92,6 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const data = await res.json();
         setIsLoading(false);
         if (!res.ok) throw new Error(data.detail || 'Registration failed');
+        if (data.user) setUser(data.user);
         return data;
     };
 

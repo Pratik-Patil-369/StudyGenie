@@ -1,1 +1,5 @@
-export const API_BASE = 'http://localhost:8000/api';
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+export const API_BASE = isLocal 
+    ? 'http://localhost:8000/api' 
+    : 'https://studygenie-1-o65o.onrender.com/api';

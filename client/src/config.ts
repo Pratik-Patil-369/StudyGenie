@@ -2,4 +2,4 @@ const isLocal = window.location.hostname === 'localhost' || window.location.host
 
 export const API_BASE = isLocal 
     ? 'http://localhost:8000/api' 
-    : 'https://studygenie-1-o65o.onrender.com/api';
+    : (import.meta.env.VITE_API_BASE_URL || 'https://studygenie-1-o65o.onrender.com/api');
